@@ -1,0 +1,7 @@
+- name: bicep-build-output
+  uses: Azure/bicep-build-action@v1.0.1
+  with:
+    # Bicep main file path
+    bicepFilePath: ./main.bicep
+    # ARM template output path
+    outputFilePath: ./azuredeploy.json
