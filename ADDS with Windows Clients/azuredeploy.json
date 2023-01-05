@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "7049333672795907949"
+      "templateHash": "3985961508277390392"
     }
   },
   "parameters": {
@@ -18,12 +18,14 @@
     },
     "sku": {
       "type": "string",
+      "defaultValue": "standard",
       "metadata": {
         "description": "Globally unique Vault name must only contain alphanumeric characters and dashes and cannot start with a number."
       }
     },
     "skuCode": {
-      "type": "string"
+      "type": "string",
+      "defaultValue": "A"
     },
     "logAnalyticsWorkspaceName": {
       "type": "string",
@@ -201,18 +203,21 @@
       }
     },
     "clientsToDeploy": {
-      "type": "array",
-      "defaultValue": [
-        "10-1607"
+      "type": "int",
+      "defaultValue": 1,
+      "allowedValues": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
       ],
       "metadata": {
-        "description": "ClientsToDeploy, array, possible values: 7, 8, 10-1511, 10-1607, 10-1703. Examples: Single Win7 VM = [\"7\"]. Two Win7, one Win10 Creators = [\"7\", \"7\", \"10-1703\"]."
-      }
-    },
-    "clientImageBaseResource": {
-      "type": "string",
-      "metadata": {
-        "description": "Enter the full Azure ARM resource string to the location where you store your client images, like /subscriptions/&lt;YourAzureSubscriptionID&gt;/resourceGroups/&lt;YourImageRG&gt;/providers/Microsoft.Compute/images/"
+        "description": "ClientsToDeploy, possible values: 1-9."
       }
     },
     "location": {
@@ -2097,9 +2102,6 @@
           "adDomainName": {
             "value": "[parameters('adDomainName')]"
           },
-          "clientImageBaseResource": {
-            "value": "[parameters('clientImageBaseResource')]"
-          },
           "clientsToDeploy": {
             "value": "[parameters('clientsToDeploy')]"
           },
@@ -2117,7 +2119,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "9515073903367664625"
+              "templateHash": "12152416824303618443"
             }
           },
           "parameters": {
@@ -2153,8 +2155,7 @@
               "defaultValue": "contoso.com"
             },
             "clientsToDeploy": {
-              "type": "array",
-              "defaultValue": []
+              "type": "int"
             },
             "vmSize": {
               "type": "string",
@@ -2166,12 +2167,6 @@
             "assetLocation": {
               "type": "string"
             },
-            "clientImageBaseResource": {
-              "type": "string",
-              "metadata": {
-                "description": "Enter the full Azure ARM resource string to the location where you store your client images."
-              }
-            },
             "location": {
               "type": "string",
               "defaultValue": "[resourceGroup().location]"
@@ -2181,7 +2176,6 @@
             "shortDomainName": "[split(parameters('adDomainName'), '.')[0]]",
             "pubIpAddressName": "[toLower(format('cliPubIp{0}{1}', resourceGroup().name, parameters('deploymentNumber')))]",
             "nicName": "[format('nic-{0}-', parameters('deploymentNumber'))]",
-            "copyCount": "[length(parameters('clientsToDeploy'))]",
             "domainJoinOptions": 3,
             "ConfigRDPUsers": "ConfigRDPUsers.ps1",
             "ConfigRDPUsersUri": "[format('{0}Scripts/ConfigRDPUsers.ps1', parameters('assetLocation'))]"
@@ -2190,11 +2184,11 @@
             {
               "copy": {
                 "name": "pubIpAddressName_1",
-                "count": "[length(range(0, variables('copyCount')))]"
+                "count": "[length(range(0, parameters('clientsToDeploy')))]"
               },
               "type": "Microsoft.Network/publicIPAddresses",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1})', variables('pubIpAddressName'), add(range(0, variables('copyCount'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1})', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientPubIP",
@@ -2203,18 +2197,18 @@
               "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                  "domainNameLabel": "[toLower(format('win{0}-{1}-{2}', parameters('clientsToDeploy')[range(0, variables('copyCount'))[copyIndex()]], add(range(0, variables('copyCount'))[copyIndex()], 1), uniqueString(resourceGroup().id)))]"
+                  "domainNameLabel": "[toLower(format('win{0}-{1}-{2}', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), uniqueString(resourceGroup().id)))]"
                 }
               }
             },
             {
               "copy": {
                 "name": "nicName_1",
-                "count": "[length(range(0, variables('copyCount')))]"
+                "count": "[length(range(0, parameters('clientsToDeploy')))]"
               },
               "type": "Microsoft.Network/networkInterfaces",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1})', variables('nicName'), add(range(0, variables('copyCount'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1})', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientNIC",
@@ -2227,7 +2221,7 @@
                     "properties": {
                       "privateIPAllocationMethod": "Dynamic",
                       "publicIPAddress": {
-                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1})', variables('pubIpAddressName'), add(range(0, variables('copyCount'))[copyIndex()], 1)))]"
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1})', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1)))]"
                       },
                       "subnet": {
                         "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets/', parameters('virtualNetworkName'), parameters('cliSubnetName'))]"
@@ -2237,17 +2231,17 @@
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1})', variables('pubIpAddressName'), add(range(0, variables('copyCount'))[range(0, variables('copyCount'))[copyIndex()]], 1)))]"
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1})', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1)))]"
               ]
             },
             {
               "copy": {
                 "name": "cli_Win_ClientsToDeploy_1_deploymentNumber",
-                "count": "[length(range(0, variables('copyCount')))]"
+                "count": "[length(range(0, parameters('clientsToDeploy')))]"
               },
               "type": "Microsoft.Compute/virtualMachines",
               "apiVersion": "2022-08-01",
-              "name": "[format('cli-Win{0}-{1}-{2}', parameters('clientsToDeploy')[range(0, variables('copyCount'))[copyIndex()]], add(range(0, variables('copyCount'))[copyIndex()], 1), parameters('deploymentNumber'))]",
+              "name": "[format('cli-Win{0}-{1}-{2}', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), parameters('deploymentNumber'))]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientVM",
@@ -2258,7 +2252,7 @@
                   "vmSize": "[parameters('vmSize')]"
                 },
                 "osProfile": {
-                  "computerName": "[format('win{0}-{1}', parameters('clientsToDeploy')[range(0, variables('copyCount'))[copyIndex()]], add(range(0, variables('copyCount'))[copyIndex()], 1))]",
+                  "computerName": "[format('win{0}-{1}', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
                   "adminUsername": "[parameters('adminUsername')]",
                   "adminPassword": "[parameters('adminPassword')]",
                   "windowsConfiguration": {
@@ -2267,29 +2261,32 @@
                 },
                 "storageProfile": {
                   "imageReference": {
-                    "id": "[resourceId(format('{0}OSImage_Win', parameters('clientImageBaseResource')), format('{0}', parameters('clientsToDeploy')[range(0, variables('copyCount'))[copyIndex()]]))]"
+                    "publisher": "MicrosoftWindowsDesktop",
+                    "offer": "Windows-10",
+                    "sku": "20H2",
+                    "version": "latest"
                   }
                 },
                 "networkProfile": {
                   "networkInterfaces": [
                     {
-                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('nicName'), add(range(0, variables('copyCount'))[copyIndex()], 1)))]"
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1)))]"
                     }
                   ]
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1})', variables('nicName'), add(range(0, variables('copyCount'))[range(0, variables('copyCount'))[copyIndex()]], 1)))]"
+                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1})', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1)))]"
               ]
             },
             {
               "copy": {
                 "name": "cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers",
-                "count": "[length(range(0, variables('copyCount')))]"
+                "count": "[length(range(0, parameters('clientsToDeploy')))]"
               },
               "type": "Microsoft.Compute/virtualMachines/extensions",
               "apiVersion": "2015-06-15",
-              "name": "[format('cli-Win{0}-{1}-{2}/ConfigRDPUsers', parameters('clientsToDeploy')[range(0, variables('copyCount'))[copyIndex()]], add(range(0, variables('copyCount'))[copyIndex()], 1), parameters('deploymentNumber'))]",
+              "name": "[format('cli-Win{0}-{1}-{2}/ConfigRDPUsers', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), parameters('deploymentNumber'))]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ConfigRDPUsers",
@@ -2309,17 +2306,17 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', format('cli-Win{0}-{1}-{2}', parameters('clientsToDeploy')[range(0, variables('copyCount'))[range(0, variables('copyCount'))[copyIndex()]]], add(range(0, variables('copyCount'))[range(0, variables('copyCount'))[copyIndex()]], 1), parameters('deploymentNumber')))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', format('cli-Win{0}-{1}-{2}', range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1), parameters('deploymentNumber')))]"
               ]
             },
             {
               "copy": {
                 "name": "cli_Win_ClientsToDeploy_1_deploymentNumber_joindomain",
-                "count": "[length(range(0, variables('copyCount')))]"
+                "count": "[length(range(0, parameters('clientsToDeploy')))]"
               },
               "type": "Microsoft.Compute/virtualMachines/extensions",
               "apiVersion": "2022-08-01",
-              "name": "[format('cli-Win{0}-{1}-{2}/joindomain', parameters('clientsToDeploy')[range(0, variables('copyCount'))[copyIndex()]], add(range(0, variables('copyCount'))[copyIndex()], 1), parameters('deploymentNumber'))]",
+              "name": "[format('cli-Win{0}-{1}-{2}/joindomain', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), parameters('deploymentNumber'))]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientVMJoin",
@@ -2342,7 +2339,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', format('cli-Win{0}-{1}-{2}', parameters('clientsToDeploy')[range(0, variables('copyCount'))[range(0, variables('copyCount'))[copyIndex()]]], add(range(0, variables('copyCount'))[range(0, variables('copyCount'))[copyIndex()]], 1), parameters('deploymentNumber')))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', format('cli-Win{0}-{1}-{2}', range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1), parameters('deploymentNumber')))]"
               ]
             }
           ]
