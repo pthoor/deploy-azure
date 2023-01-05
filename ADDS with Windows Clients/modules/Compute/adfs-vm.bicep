@@ -1,0 +1,250 @@
+param dmzNSGName string = 'DMZ-WAP'
+param adSubnetName string = 'adSubnet'
+param adfsVMName string = 'AZADFS'
+
+@description('The IP Addresses assigned to the domain controllers (a, b). Remember the first IP in a subnet is .4 e.g. 10.0.0.0/16 reserves 10.0.0.0-3. Specify one IP per server - must match numberofVMInstances or deployment will fail.s')
+param adfsIP string = '10.0.1.5'
+param adDomainName string = 'contoso.com'
+
+@description('Admin password')
+@secure()
+param adminPassword string
+
+@description('Admin username')
+param adminUsername string
+
+@description('When deploying the stack N times, define the instance - this will be appended to some resource names to avoid collisions.')
+param deploymentNumber string = '1'
+param assetLocation string
+param dmzSubnetName string = 'adSubnet'
+
+@metadata({ Description: 'The region to deploy the resources into' })
+param location string
+
+@description('This is the prefix name of the Network interfaces')
+param NetworkInterfaceName string = 'NIC'
+param publicIPAddressDNSName string
+param virtualNetworkName string = 'vnet'
+
+@description('This is the allowed list of VM sizes')
+param vmSize string = 'Standard_B2ms'
+param wapVMName string = 'AZPROX'
+
+@description('An ADFS/WAP server combo will be setup independently this number of times. NOTE: it\'s unlikely to ever need more than one - additional farm counts are for edge case testing.')
+@allowed([
+  '1'
+  '2'
+  '3'
+  '4'
+  '5'
+])
+param AdfsFarmCount string = '1'
+
+var adfsDeployCount = int(AdfsFarmCount)
+var shortDomainName = split(adDomainName, '.')[0]
+var adfsNetworkArr = split(adfsIP, '.')
+var adfsStartIpNodeAddress = int(adfsNetworkArr[3])
+var adfsNetworkString = '${adfsNetworkArr[0]}.${adfsNetworkArr[1]}.${adfsNetworkArr[2]}.'
+var DSCTemplate = '${assetLocation}scripts/adfsDSC.zip'
+var adfsDSCConfigurationFunction = 'adfsDSCConfiguration.ps1\\Main'
+var adfsNICName = 'adfs-${NetworkInterfaceName}${deploymentNumber}'
+var adfsPubIpName = 'ADFSPubIP${deploymentNumber}'
+var domainJoinOptions = '3'
+var imageOffer = 'WindowsServer'
+var imagePublisher = 'MicrosoftWindowsServer'
+var imageSKU = '2012-R2-Datacenter'
+var vnetID = resourceId('Microsoft.Network/virtualNetworks', virtualNetworkName)
+var wapDSCConfigurationFunction = 'wapDSCConfiguration.ps1\\Main'
+var wapNICName = 'wap-${NetworkInterfaceName}${deploymentNumber}'
+var wapPubIpName = 'WAPPubIP${deploymentNumber}'
+
+resource adfsPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for i in range(0, adfsDeployCount): {
+  name: '${adfsPubIpName}${(i + 1)}'
+  location: location
+  tags: {
+    displayName: 'adfsPubIp'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Dynamic'
+    dnsSettings: {
+      domainNameLabel: toLower('${adfsVMName}${deploymentNumber}-${(i + 1)}')
+    }
+  }
+}]
+
+resource wapPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for i in range(0, adfsDeployCount): {
+  name: '${wapPubIpName}${(i + 1)}'
+  location: location
+  tags: {
+    displayName: 'wapPubIp'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Dynamic'
+    dnsSettings: {
+      domainNameLabel: toLower('${publicIPAddressDNSName}${(i + 1)}')
+    }
+  }
+}]
+
+resource adfsNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in range(0, adfsDeployCount): {
+  name: '${adfsNICName}${(i + 1)}'
+  location: location
+  tags: {
+    displayName: 'adfsNIC'
+  }
+  properties: {
+    ipConfigurations: [
+      {
+        name: 'adfsipconfig${deploymentNumber}${(i + 1)}'
+        properties: {
+          privateIPAllocationMethod: 'Static'
+          privateIPAddress: '${adfsNetworkString}${i}${adfsStartIpNodeAddress}'
+          publicIPAddress: {
+            id: resourceId('Microsoft.Network/publicIPAddresses', '${adfsPubIpName}${(i + 1)}')
+          }
+          subnet: {
+            id: resourceId('${vnetID}/subnets/', '${adSubnetName}')
+          }
+        }
+      }
+    ]
+  }
+  dependsOn: [
+    adfsPubIpName_1
+  ]
+}]
+
+resource wapNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in range(0, adfsDeployCount): {
+  name: '${wapNICName}${(i + 1)}'
+  location: location
+  tags: {
+    displayName: 'wapNIC'
+  }
+  properties: {
+    ipConfigurations: [
+      {
+        name: 'wapipconfig${deploymentNumber}-${(i + 1)}'
+        properties: {
+          privateIPAllocationMethod: 'Dynamic'
+          publicIPAddress: {
+            id: resourceId('Microsoft.Network/publicIPAddresses', '${wapPubIpName}${(i + 1)}')
+          }
+          subnet: {
+            id: resourceId('${vnetID}/subnets/', '${dmzSubnetName}')
+          }
+        }
+      }
+    ]
+  }
+  dependsOn: [
+    wapPubIpName_1
+  ]
+}]
+
+resource adfsVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in range(0, adfsDeployCount): {
+  name: '${adfsVMName}${(i + 1)}'
+  location: location
+  tags: {
+    displayName: 'adfsVM'
+  }
+  properties: {
+    hardwareProfile: {
+      vmSize: vmSize
+    }
+    osProfile: {
+      computerName: '${adfsVMName}${(i + 1)}'
+      adminUsername: adminUsername
+      adminPassword: adminPassword
+    }
+    storageProfile: {
+      imageReference: {
+        publisher: imagePublisher
+        offer: imageOffer
+        sku: imageSKU
+        version: 'latest'
+      }
+      osDisk: {
+        caching: 'ReadWrite'
+        createOption: 'FromImage'
+      }
+    }
+    networkProfile: {
+      networkInterfaces: [
+        {
+          id: resourceId('Microsoft.Network/networkInterfaces', '${adfsNICName}${(i + 1)}')
+        }
+      ]
+    }
+  }
+  dependsOn: [
+    adfsNICName_1
+  ]
+}]
+
+resource adfsVMName_1_joindomain 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
+  name: '${adfsVMName}${(i + 1)}/joindomain'
+  location: location
+  tags: {
+    displayName: 'adfsVMJoin'
+    isClient: 'true'
+  }
+  properties: {
+    publisher: 'Microsoft.Compute'
+    type: 'JsonADDomainExtension'
+    typeHandlerVersion: '1.3'
+    autoUpgradeMinorVersion: true
+    settings: {
+      Name: adDomainName
+      OUPath: ''
+      User: '${shortDomainName}\\${adminUsername}'
+      Restart: 'true'
+      Options: domainJoinOptions
+    }
+    protectedSettings: {
+      Password: adminPassword
+    }
+  }
+  dependsOn: [
+    adfsVMName_1
+  ]
+}]
+
+resource wapVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in range(0, adfsDeployCount): {
+  name: '${wapVMName}${(i + 1)}'
+  location: location
+  tags: {
+    displayName: 'wapVM'
+  }
+  properties: {
+    hardwareProfile: {
+      vmSize: vmSize
+    }
+    osProfile: {
+      computerName: '${wapVMName}${(i + 1)}'
+      adminUsername: adminUsername
+      adminPassword: adminPassword
+    }
+    storageProfile: {
+      imageReference: {
+        publisher: imagePublisher
+        offer: imageOffer
+        sku: imageSKU
+        version: 'latest'
+      }
+      osDisk: {
+        caching: 'ReadWrite'
+        createOption: 'FromImage'
+      }
+    }
+    networkProfile: {
+      networkInterfaces: [
+        {
+          id: resourceId('Microsoft.Network/networkInterfaces', '${wapNICName}${(i + 1)}')
+        }
+      ]
+    }
+  }
+  dependsOn: [
+    wapNICName_1
+  ]
+}]

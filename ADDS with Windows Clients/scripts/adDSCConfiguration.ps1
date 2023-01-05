@@ -1,3 +1,5 @@
+$DscWorkingFolder = $PSScriptRoot
+
 Configuration Deploy-DomainServices
 {
     Param

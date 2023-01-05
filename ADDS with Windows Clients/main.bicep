@@ -1,55 +1,5 @@
-// Deployment parameters
-@description('Location to depoloy all resources. Leave this value as-is to inherit the location from the parent resource group.')
-param location string = resourceGroup().location
-
-// Virtual network parameters
-@description('Name for the virtual network.')
-param virtualNetworkName string = 'VNET'
-
-@description('Address space for the virtual network, in IPv4 CIDR notation.')
-param virtualNetworkAddressSpace string = '10.0.0.0/16'
-
-@description('Name for the default subnet in the virtual network.')
-param subnetName string = 'Subnet'
-
-@description('Address range for the default subnet, in IPv4 CIDR notation.')
-param subnetAddressRange string = '10.0.0.0/24'
-
-@description('Public IP address of your local machine, in IPv4 CIDR notation. Used to restrict remote access to resources within the virtual network.')
-param allowedSourceIPAddress string = '0.0.0.0/0'
-
-// Virtual machine parameters
-@description('Name for the domain controller virtual machine.')
-param domainControllerName string = 'DC01'
-
-@description('Name for the workstation virtual machine.')
-param workstationName string = 'WS01'
-
-@description('Size for both the domain controller and workstation virtual machines.')
-@allowed([
-  'Standard_B2ms'
-  'Standard_B4ms'
-  'Standard_DS1_v2'
-  'Standard_D2s_v3'
-])
-param virtualMachineSize string = 'Standard_B2ms'
-
-// Domain parameters
-@description('FQDN for the Active Directory domain (e.g. contoso.com).')
-@minLength(3)
-@maxLength(255)
-param domainFQDN string = 'contoso.com'
-
-@description('Administrator username for both the domain controller and workstation virtual machines.')
-@minLength(1)
-@maxLength(20)
-param adminUsername string
-
-@description('Administrator password for both the domain controller and workstation virtual machines.')
-@minLength(12)
-@maxLength(123)
-@secure()
-param adminPassword string
+@description('This is the location in which all the linked templates are stored.')
+param assetLocation string = 'https://raw.githubusercontent.com/pthoor/deploy-azure/main/ADDS%20with%20Windows%20Clients/scripts/'
 
 // Key Vault parameters
 @description('Globally unique Vault name must only contain alphanumeric characters and dashes and cannot start with a number.')
@@ -81,136 +31,445 @@ module keyvault 'modules/keyvault.bicep' = {
   }
 }
 
-// Deploy the virtual network
-module virtualNetwork 'modules/network.bicep' = {
+@description('Username to set for the local User. Cannot be "Administrator", "root" and possibly other such common account names. ')
+param adminUsername string = 'localAdmin'
+
+@description('When deploying the stack N times simultaneously, define the instance - this will be appended to some resource names to avoid collisions.')
+@allowed([
+  '0'
+  '1'
+  '2'
+  '3'
+  '4'
+  '5'
+  '6'
+  '7'
+  '8'
+  '9'
+])
+param deploymentNumber string = '1'
+
+@description('Password for the local administrator account. Cannot be "P@ssw0rd" and possibly other such common passwords. Must be 8 characters long and three of the following complexity requirements: uppercase, lowercase, number, special character')
+@secure()
+param adminPassword string
+
+@description('Two-part internal AD name - short/NB name will be first part (\'contoso\').')
+param adDomainName string = 'contoso.com'
+
+@description('JSON object array of users that will be loaded into AD once the domain is established.')
+param usersArray array = [
+  {
+    FName: 'Bob'
+    LName: 'Jones'
+    SAM: 'bjones'
+  }
+  {
+    FName: 'Bill'
+    LName: 'Smith'
+    SAM: 'bsmith'
+  }
+  {
+    FName: 'Mary'
+    LName: 'Phillips'
+    SAM: 'mphillips'
+  }
+  {
+    FName: 'Sue'
+    LName: 'Jackson'
+    SAM: 'sjackson'
+  }
+]
+
+@description('Enter the password that will be applied to each user account to be created in AD.')
+@secure()
+param defaultUserPassword string
+
+@description('An ADFS/WAP server combo will be setup independently this number of times. NOTE: it\'s unlikely to ever need more than one - additional farm counts are for edge case testing.')
+@allowed([
+  '1'
+  '2'
+  '3'
+  '4'
+  '5'
+])
+param AdfsFarmCount string = '1'
+
+@description('Select a VM SKU (please ensure the SKU is available in your selected region).')
+@allowed([
+  'Standard_A1_v2'
+  'Standard_A2_v2'
+  'Standard_A4_v2'
+  'Standard_A2M_v2'
+  'Standard_A4M_v2'
+  'Standard_A4_v2'
+  'Standard_D2_v2'
+  'Standard_D3_v2'
+  'Standard_D11_v2'
+  'Standard_D12_v2'
+  'Standard_B2ms'
+  'Standard_B2s'
+  'Standard_B4ms'
+])
+param vmSize string = 'Standard_B2ms'
+
+@description('The address range of the new virtual network in CIDR format')
+param virtualNetworkAddressRange string = '10.0.0.0/16'
+
+@description('The address range of the desired subnet for Active Directory.')
+param adSubnetAddressRange string = '10.0.1.0/24'
+
+@description('The IP Addresses assigned to the domain controllers (a, b). Remember the first IP in a subnet is .4 e.g. 10.0.0.0/16 reserves 10.0.0.0-3. Specify one IP per server - must match numberofVMInstances or deployment will fail.')
+param adIP string = '10.0.1.4'
+
+@description('The IP Addresses assigned to the domain controllers (a, b). Remember the first IP in a subnet is .4 e.g. 10.0.0.0/16 reserves 10.0.0.0-3. Specify one IP per server - must match numberofVMInstances or deployment will fail.')
+param adfsIP string = '10.0.1.5'
+
+@description('The address range of the desired subnet for the DMZ.')
+param dmzSubnetAddressRange string = '10.0.2.0/24'
+
+@description('The address range of the desired subnet for clients.')
+param cliSubnetAddressRange string = '10.0.3.0/24'
+
+@description('ClientsToDeploy, array, possible values: 7, 8, 10-1511, 10-1607, 10-1703. Examples: Single Win7 VM = ["7"]. Two Win7, one Win10 Creators = ["7", "7", "10-1703"].')
+param clientsToDeploy array = [
+  '10-1607'
+]
+
+@description('Enter the full Azure ARM resource string to the location where you store your client images, like /subscriptions/&lt;YourAzureSubscriptionID&gt;/resourceGroups/&lt;YourImageRG&gt;/providers/Microsoft.Compute/images/')
+param clientImageBaseResource string
+
+param location string = resourceGroup().location
+
+var adfsDeployCount = int(AdfsFarmCount)
+var networkInterfaceName = 'NIC'
+var addcVMNameSuffix = 'dc'
+var adfsVMNameSuffix = 'fs'
+var wapVMNameSuffix = 'px'
+var companyNamePrefix = split(adDomainName, '.')[0]
+var adfsVMName = toUpper('${companyNamePrefix}${adfsVMNameSuffix}')
+var adVMName = toUpper('${companyNamePrefix}${addcVMNameSuffix}')
+var adNSGName = 'INT-AD${deploymentNumber}'
+var virtualNetworkName = '${companyNamePrefix}${deploymentNumber}-vnet'
+var adSubnetName = 'adSubnet${deploymentNumber}'
+var dmzNSGName = 'DMZ-WAP${deploymentNumber}'
+var dmzSubnetName = 'dmzSubnet${deploymentNumber}'
+var cliNSGName = 'INT-CLI${deploymentNumber}'
+var cliSubnetName = 'clientSubnet${deploymentNumber}'
+var publicIPAddressDNSName = toLower('${companyNamePrefix}${deploymentNumber}-adfs')
+var wapVMName = toUpper('${companyNamePrefix}${wapVMNameSuffix}')
+var adDSCTemplate = '${assetLocation}scripts/adDSC.zip'
+var DeployADFSFarmTemplate = 'InstallADFS.ps1'
+var DeployADFSFarmTemplateUri = '${assetLocation}Scripts/InstallADFS.ps1'
+var CopyCertToWAPTemplate = 'CopyCertToWAP.ps1'
+var CopyCertToWAPTemplateUri = '${assetLocation}Scripts/CopyCertToWAP.ps1'
+var adDSCConfigurationFunction = 'adDSCConfiguration.ps1\\DomainController'
+var subnets = [
+  {
+    name: adSubnetName
+    properties: {
+      addressprefix: adSubnetAddressRange
+      networkSecurityGroup: {
+        id: resourceId('Microsoft.Network/networkSecurityGroups', adNSGName)
+      }
+    }
+  }
+  {
+    name: dmzSubnetName
+    properties: {
+      addressprefix: dmzSubnetAddressRange
+      networkSecurityGroup: {
+        id: resourceId('Microsoft.Network/networkSecurityGroups', dmzNSGName)
+      }
+    }
+  }
+  {
+    name: cliSubnetName
+    properties: {
+      addressprefix: cliSubnetAddressRange
+      networkSecurityGroup: {
+        id: resourceId('Microsoft.Network/networkSecurityGroups', cliNSGName)
+      }
+    }
+  }
+]
+var adfsDSCTemplate = '${assetLocation}DSC/adfsDSC.zip'
+var adfsDSCConfigurationFunction = 'adfsDSCConfiguration.ps1\\Main'
+var wapDSCConfigurationFunction = 'wapDSCConfiguration.ps1\\Main'
+var WAPPubIpDnsFQDN = '${publicIPAddressDNSName}{0}.${toLower(replace(location, ' ', ''))}.cloudapp.azure.com'
+
+module virtualNetwork 'modules/Networking/vnet.bicep' = {
   name: 'virtualNetwork'
   params: {
     location: location
     virtualNetworkName: virtualNetworkName
-    virtualNetworkAddressSpace: virtualNetworkAddressSpace
-    subnetName: subnetName
-    subnetAddressRange: subnetAddressRange
-    allowedSourceIPAddress: allowedSourceIPAddress
+    subnets: subnets
+    virtualNetworkAddressRange: virtualNetworkAddressRange
   }
+  dependsOn: [
+    NSGs
+  ]
 }
 
-// Deploy the domain controller
-module domainController 'modules/vm.bicep' = {
-  name: 'domainController'
+module NSGs 'modules/Networking/vnet-NSG.bicep' = {
+  name: 'NSGs'
   params: {
-    location: location
-    subnetId: virtualNetwork.outputs.subnetId
-    vmName: domainControllerName
-    vmSize: virtualMachineSize
-    vmPublisher: 'MicrosoftWindowsServer'
-    vmOffer: 'WindowsServer'
-    vmSku: '2019-Datacenter'
-    vmVersion: 'latest'
-    vmStorageAccountType: 'StandardSSD_LRS'
-    adminUsername: adminUsername
+    virtualNetworkName: virtualNetworkName
+    subnets: subnets
+    deploymentNumber: deploymentNumber
+  }
+}
+
+module adVMs 'modules/Compute/ad-vm.bicep' = {
+  name: 'adVMs'
+  params: {
+    adIP: adIP
     adminPassword: adminPassword
+    adminUsername: adminUsername
+    adDomainName: adDomainName
+    adSubnetName: adSubnetName
+    adVMName: adVMName
+    location: location
+    NetworkInterfaceName: networkInterfaceName
+    virtualNetworkName: virtualNetworkName
+    vmSize: vmSize
+    deploymentNumber: deploymentNumber
   }
+  dependsOn: [
+    virtualNetwork
+  ]
 }
 
-// Use PowerShell DSC to deploy Active Directory Domain Services on the domain controller
-resource domainControllerConfiguration 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
-  name: '${domainControllerName}/Microsoft.Powershell.DSC'
-  dependsOn: [
-    domainController
-  ]
-  location: location
-  properties: {
-    publisher: 'Microsoft.Powershell'
-    type: 'DSC'
-    typeHandlerVersion: '2.77'
-    autoUpgradeMinorVersion: true
-    settings: {
-      ModulesUrl: 'https://github.com/joshua-a-lucas/BlueTeamLab/raw/main/scripts/Deploy-DomainServices.zip'
-      ConfigurationFunction: 'Deploy-DomainServices.ps1\\Deploy-DomainServices'
-      Properties: {
-        domainFQDN: domainFQDN
-        adminCredential: {
-          UserName: adminUsername
-          Password: 'PrivateSettingsRef:adminPassword'
-        }
-      }
-    }
-    protectedSettings: {
-      Items: {
-          adminPassword: adminPassword
-      }
-    }
-  }
-}
-
-// Update the virtual network with the domain controller as the primary DNS server
-module virtualNetworkDNS 'modules/network.bicep' = {
-  name: 'virtualNetworkDNS'
-  dependsOn: [
-    domainControllerConfiguration
-  ]
+module virtualNetworkDNSUpdate 'modules/Networking/vnet-dns.bicep' = {
+  name: 'virtualNetworkDNSUpdate'
   params: {
     location: location
     virtualNetworkName: virtualNetworkName
-    virtualNetworkAddressSpace: virtualNetworkAddressSpace
-    subnetName: subnetName
-    subnetAddressRange: subnetAddressRange
-    allowedSourceIPAddress: allowedSourceIPAddress
-    dnsServerIPAddress: domainController.outputs.privateIpAddress
+    subnets: subnets
+    virtualNetworkAddressRange: virtualNetworkAddressRange
+    dnsIP: adIP
   }
+  dependsOn: [
+    adVMs
+  ]
 }
 
-// Deploy the workstation once the virtual network's primary DNS server has been updated to the domain controller
-module workstation 'modules/vm.bicep' = {
-  name: 'workstation'
-  dependsOn: [
-    virtualNetworkDNS
-  ]
-  params: {
-    location: location
-    subnetId: virtualNetwork.outputs.subnetId
-    vmName: workstationName
-    vmSize: virtualMachineSize
-    vmPublisher: 'MicrosoftWindowsDesktop'
-    vmOffer: 'Windows-10'
-    vmSku: 'win10-21h2-pro'
-    vmVersion: 'latest'
-    vmStorageAccountType: 'StandardSSD_LRS'
-    adminUsername: adminUsername
-    adminPassword: adminPassword
-  }
-}
-
-// Use PowerShell DSC to join the workstation to the domain
-resource workstationConfiguration 'Microsoft.Compute/virtualMachines/extensions@2021-11-01' = {
-  name: '${workstationName}/Microsoft.Powershell.DSC'
-  dependsOn: [
-    workstation
-  ]
+resource adVMName_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = {
+  name: '${adVMName}/Microsoft.Powershell.DSC'
   location: location
+  tags: {
+    displayName: 'adDSC'
+  }
   properties: {
     publisher: 'Microsoft.Powershell'
     type: 'DSC'
-    typeHandlerVersion: '2.77'
+    typeHandlerVersion: '2.83'
+    forceUpdateTag: '1.02'
     autoUpgradeMinorVersion: true
     settings: {
-      ModulesUrl: 'https://github.com/joshua-a-lucas/BlueTeamLab/raw/main/scripts/Join-Domain.zip'
-      ConfigurationFunction: 'Join-Domain.ps1\\Join-Domain'
-      Properties: {
-        domainFQDN: domainFQDN
-        computerName: workstationName
-        adminCredential: {
-          UserName: adminUsername
-          Password: 'PrivateSettingsRef:adminPassword'
+      modulesUrl: adDSCTemplate
+      configurationFunction: adDSCConfigurationFunction
+      properties: [
+        {
+          Name: 'Subject'
+          Value: WAPPubIpDnsFQDN
+          TypeName: 'System.String'
         }
-      }
+        {
+          Name: 'ADFSFarmCount'
+          Value: AdfsFarmCount
+          TypeName: 'System.Integer'
+        }
+        {
+          Name: 'AdminCreds'
+          Value: {
+            UserName: adminUsername
+            Password: 'PrivateSettingsRef:AdminPassword'
+          }
+          TypeName: 'System.Management.Automation.PSCredential'
+        }
+        {
+          Name: 'ADFSIPAddress'
+          Value: adfsIP
+          TypeName: 'System.String'
+        }
+        {
+          Name: 'usersArray'
+          Value: usersArray
+          TypeName: 'System.Object'
+        }
+        {
+          Name: 'UserCreds'
+          Value: {
+            UserName: 'user'
+            Password: 'PrivateSettingsRef:UserPassword'
+          }
+          TypeName: 'System.Management.Automation.PSCredential'
+        }
+      ]
     }
     protectedSettings: {
       Items: {
-          adminPassword: adminPassword
+        AdminPassword: adminPassword
+        UserPassword: defaultUserPassword
       }
     }
   }
+  dependsOn: [
+    adVMs
+  ]
+}
+
+module adfsVMs 'modules/Compute/adfs-vm.bicep' = {
+  name: 'adfsVMs'
+  params: {
+    assetLocation: assetLocation
+    adfsIP: adfsIP
+    adSubnetName: adSubnetName
+    adfsVMName: adfsVMName
+    adDomainName: adDomainName
+    adminPassword: adminPassword
+    adminUsername: adminUsername
+        dmzSubnetName: dmzSubnetName
+    dmzNSGName: dmzNSGName
+    location: location
+    NetworkInterfaceName: networkInterfaceName
+    publicIPAddressDNSName: publicIPAddressDNSName
+    virtualNetworkName: virtualNetworkName
+    vmSize: vmSize
+    wapVMName: wapVMName
+    deploymentNumber: deploymentNumber
+    AdfsFarmCount: AdfsFarmCount
+  }
+  dependsOn: [
+    virtualNetworkDNSUpdate
+  ]
+}
+
+resource adfsVMName_1_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = [for i in range(0, adfsDeployCount): {
+  name: '${adfsVMName}${(i + 1)}/Microsoft.Powershell.DSC'
+  location: location
+  tags: {
+    displayName: 'adfsDSC'
+  }
+  properties: {
+    publisher: 'Microsoft.Powershell'
+    type: 'DSC'
+    typeHandlerVersion: '2.83'
+    autoUpgradeMinorVersion: true
+    forceUpdateTag: '1.01'
+    settings: {
+      modulesUrl: adfsDSCTemplate
+      configurationFunction: adfsDSCConfigurationFunction
+      properties: [
+        {
+          Name: 'AdminCreds'
+          Value: {
+            UserName: adminUsername
+            Password: 'PrivateSettingsRef:AdminPassword'
+          }
+          TypeName: 'System.Management.Automation.PSCredential'
+        }
+      ]
+    }
+    protectedSettings: {
+      Items: {
+        AdminPassword: adminPassword
+      }
+    }
+  }
+  dependsOn: [
+    adfsVMs
+    adVMName_Microsoft_Powershell_DSC
+  ]
+}]
+
+resource adfsVMName_1_InstallADFS 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = [for i in range(0, adfsDeployCount): {
+  name: '${adfsVMName}${(i + 1)}/InstallADFS'
+  location: location
+  tags: {
+    displayName: 'DeployADFSFarm'
+  }
+  properties: {
+    publisher: 'Microsoft.Compute'
+    type: 'CustomScriptExtension'
+    typeHandlerVersion: '1.9'
+    autoUpgradeMinorVersion: true
+    settings: {
+      fileUris: [
+        DeployADFSFarmTemplateUri
+      ]
+      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${DeployADFSFarmTemplate} -Acct ${adminUsername} -PW ${adminPassword} -WapFqdn ${WAPPubIpDnsFQDN}'
+    }
+  }
+  dependsOn: [
+    adfsVMName_1_Microsoft_Powershell_DSC
+  ]
+}]
+
+resource wapVMName_1_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
+  name: '${wapVMName}${(i + 1)}/Microsoft.Powershell.DSC'
+  location: location
+  tags: {
+    displayName: 'wapDSCPrep'
+  }
+  properties: {
+    publisher: 'Microsoft.Powershell'
+    type: 'DSC'
+    typeHandlerVersion: '2.83'
+    autoUpgradeMinorVersion: true
+    settings: {
+      modulesUrl: adfsDSCTemplate
+      configurationFunction: wapDSCConfigurationFunction
+      properties: []
+    }
+  }
+  dependsOn: [
+    adfsVMs
+  ]
+}]
+
+resource wapVMName_1_CopyCertToWAP 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
+  name: '${wapVMName}${(i + 1)}/CopyCertToWAP'
+  location: location
+  tags: {
+    displayName: 'ConfigureWAP'
+  }
+  properties: {
+    publisher: 'Microsoft.Compute'
+    type: 'CustomScriptExtension'
+    typeHandlerVersion: '1.9'
+    autoUpgradeMinorVersion: true
+    settings: {
+      fileUris: [
+        CopyCertToWAPTemplateUri
+      ]
+      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${CopyCertToWAPTemplate} -DCFQDN ${adVMName}.${adDomainName} -adminuser ${adminUsername} -password ${adminPassword} -instance ${(i + 1)} -WapFqdn ${WAPPubIpDnsFQDN}'
+    }
+  }
+  dependsOn: [
+    wapVMName_1_Microsoft_Powershell_DSC
+    adfsVMName_1_InstallADFS
+  ]
+}]
+
+module clientVMs 'modules/Compute/client-vm.bicep' = {
+  name: 'clientVMs'
+  params: {
+    location: location
+    adminPassword: adminPassword
+    adminUsername: adminUsername
+    deploymentNumber: deploymentNumber
+    virtualNetworkName: virtualNetworkName
+    cliSubnetName: cliSubnetName
+    adDomainName: adDomainName
+    clientImageBaseResource: clientImageBaseResource
+    clientsToDeploy: clientsToDeploy
+    vmSize: vmSize
+    assetLocation: assetLocation
+  }
+  dependsOn: [
+    virtualNetworkDNSUpdate
+  ]
 }
 
 // Deploy the Microsoft Sentinel instance
@@ -282,14 +541,14 @@ resource dcr 'Microsoft.Insights/dataCollectionRules@2021-04-01' = {
 
 // Create a data collection rule association for the domain controller
 resource domainControllerVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing = {
-  name: domainControllerName
+  name: adVMName
 }
 
 resource domainControllerAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = {
-  name: '${domainControllerName}-dcra'
+  name: '${adVMs}-dcra'
   dependsOn: [
     workspace
-    domainControllerConfiguration
+    adVMs
   ]
   scope: domainControllerVm
   properties: {
@@ -299,14 +558,14 @@ resource domainControllerAssociation 'Microsoft.Insights/dataCollectionRuleAssoc
 
 // Create a data collection rule association for the workstation
 resource workstationVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing = {
-  name: workstationName
+  name: 'clientVMs'
 }
 
 resource workstationAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = {
-  name: '${workstationName}-dcra'
+  name: '${clientVMs}-dcra'
   dependsOn: [
     workspace
-    workstationConfiguration
+    clientVMs
   ]
   scope: workstationVm
   properties: {
