@@ -550,7 +550,7 @@ resource domainControllerVm 'Microsoft.Compute/virtualMachines@2021-11-01' exist
 }
 
 resource domainControllerAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = {
-  name: '${adVMs}-dcra'
+  name: '${'adVMs'}-dcra'
   dependsOn: [
     workspace
     adVMs
@@ -567,7 +567,7 @@ resource workstationVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing =
 }
 
 resource workstationAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = {
-  name: '${clientVMs}-dcra'
+  name: '${'clientVMs'}-dcra'
   dependsOn: [
     workspace
     clientVMs

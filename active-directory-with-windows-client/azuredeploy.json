@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "3985961508277390392"
+      "templateHash": "14552796826854313138"
     }
   },
   "parameters": {
@@ -286,7 +286,7 @@
   "resources": [
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2022-08-01",
       "name": "[format('{0}/Microsoft.Powershell.DSC', variables('adVMName'))]",
       "location": "[parameters('location')]",
       "tags": {
@@ -357,7 +357,7 @@
         "count": "[length(range(0, variables('adfsDeployCount')))]"
       },
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2022-08-01",
       "name": "[format('{0}{1}/Microsoft.Powershell.DSC', variables('adfsVMName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
       "location": "[parameters('location')]",
       "tags": {
@@ -400,7 +400,7 @@
         "count": "[length(range(0, variables('adfsDeployCount')))]"
       },
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2022-08-01",
       "name": "[format('{0}{1}/InstallADFS', variables('adfsVMName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
       "location": "[parameters('location')]",
       "tags": {
@@ -480,7 +480,7 @@
     },
     {
       "type": "Microsoft.Insights/dataCollectionRules",
-      "apiVersion": "2021-04-01",
+      "apiVersion": "2021-09-01-preview",
       "name": "DCR",
       "location": "[parameters('location')]",
       "kind": "Windows",
@@ -540,7 +540,7 @@
       "type": "Microsoft.Insights/dataCollectionRuleAssociations",
       "apiVersion": "2021-04-01",
       "scope": "[format('Microsoft.Compute/virtualMachines/{0}', variables('adVMName'))]",
-      "name": "[format('{0}-dcra', reference(resourceId('Microsoft.Resources/deployments', 'adVMs'), '2020-10-01').outputs)]",
+      "name": "[format('{0}-dcra', 'adVMs')]",
       "properties": {
         "dataCollectionRuleId": "[resourceId('Microsoft.Insights/dataCollectionRules', 'DCR')]"
       },
@@ -554,7 +554,7 @@
       "type": "Microsoft.Insights/dataCollectionRuleAssociations",
       "apiVersion": "2021-04-01",
       "scope": "[format('Microsoft.Compute/virtualMachines/{0}', 'clientVMs')]",
-      "name": "[format('{0}-dcra', reference(resourceId('Microsoft.Resources/deployments', 'clientVMs'), '2020-10-01').outputs)]",
+      "name": "[format('{0}-dcra', 'clientVMs')]",
       "properties": {
         "dataCollectionRuleId": "[resourceId('Microsoft.Insights/dataCollectionRules', 'DCR')]"
       },
@@ -754,7 +754,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "3860060899288674385"
+              "templateHash": "17526374410105887070"
             }
           },
           "parameters": {
@@ -795,7 +795,7 @@
           "resources": [
             {
               "type": "Microsoft.Network/networkSecurityGroups",
-              "apiVersion": "2015-06-15",
+              "apiVersion": "2022-07-01",
               "name": "[variables('adNSGName_var')]",
               "location": "[variables('location')]",
               "tags": {
@@ -1214,7 +1214,7 @@
             },
             {
               "type": "Microsoft.Network/networkSecurityGroups",
-              "apiVersion": "2015-06-15",
+              "apiVersion": "2022-07-01",
               "name": "[variables('dmzNSGName_var')]",
               "location": "[variables('location')]",
               "tags": {
@@ -1255,7 +1255,7 @@
             },
             {
               "type": "Microsoft.Network/networkSecurityGroups",
-              "apiVersion": "2015-06-15",
+              "apiVersion": "2022-07-01",
               "name": "[variables('cliNSGName_var')]",
               "location": "[variables('location')]",
               "tags": {
@@ -1363,7 +1363,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "2331797120570028044"
+              "templateHash": "2516474953039239656"
             }
           },
           "parameters": {
@@ -1440,7 +1440,7 @@
           "variables": {
             "imageOffer": "WindowsServer",
             "imagePublisher": "MicrosoftWindowsServer",
-            "imageSKU": "2022-R2-Datacenter",
+            "imageSKU": "2022-datacenter",
             "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
             "adPubIPName": "[format('adPubIP{0}', parameters('deploymentNumber'))]",
             "adNicName": "[format('ad-{0}{1}', parameters('NetworkInterfaceName'), parameters('deploymentNumber'))]"
@@ -2119,7 +2119,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "12152416824303618443"
+              "templateHash": "6805426636290185999"
             }
           },
           "parameters": {
@@ -2188,7 +2188,7 @@
               },
               "type": "Microsoft.Network/publicIPAddresses",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1})', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientPubIP",
@@ -2208,7 +2208,7 @@
               },
               "type": "Microsoft.Network/networkInterfaces",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1})', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientNIC",
@@ -2231,7 +2231,7 @@
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1})', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1)))]"
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1)))]"
               ]
             },
             {
@@ -2262,8 +2262,8 @@
                 "storageProfile": {
                   "imageReference": {
                     "publisher": "MicrosoftWindowsDesktop",
-                    "offer": "Windows-10",
-                    "sku": "20H2",
+                    "offer": "Windows-11",
+                    "sku": "win11-22h2-ent",
                     "version": "latest"
                   }
                 },
@@ -2276,7 +2276,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1})', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1)))]"
+                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1)))]"
               ]
             },
             {
@@ -2285,7 +2285,7 @@
                 "count": "[length(range(0, parameters('clientsToDeploy')))]"
               },
               "type": "Microsoft.Compute/virtualMachines/extensions",
-              "apiVersion": "2015-06-15",
+              "apiVersion": "2022-08-01",
               "name": "[format('cli-Win{0}-{1}-{2}/ConfigRDPUsers', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), parameters('deploymentNumber'))]",
               "location": "[parameters('location')]",
               "tags": {

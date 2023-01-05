@@ -26,7 +26,7 @@ var ConfigRDPUsers = 'ConfigRDPUsers.ps1'
 var ConfigRDPUsersUri = '${assetLocation}Scripts/ConfigRDPUsers.ps1'
 
 resource pubIpAddressName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for i in range(0, clientsToDeploy): {
-  name: '${pubIpAddressName}${(i + 1)})'
+  name: '${pubIpAddressName}${(i + 1)}'
   location: location
   tags: {
     displayName: 'ClientPubIP'
@@ -41,7 +41,7 @@ resource pubIpAddressName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [
 }]
 
 resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in range(0, clientsToDeploy): {
-  name: '${nicName}${(i + 1)})'
+  name: '${nicName}${(i + 1)}'
   location: location
   tags: {
     displayName: 'ClientNIC'
@@ -90,8 +90,8 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
     storageProfile: {
       imageReference: {
         publisher: 'MicrosoftWindowsDesktop'
-        offer: 'Windows-10'
-        sku: '20H2'
+        offer: 'Windows-11'
+        sku: 'win11-22h2-ent'
         version: 'latest'
       }
     }

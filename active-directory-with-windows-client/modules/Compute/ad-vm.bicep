@@ -29,7 +29,7 @@ param vmSize string = 'Standard_B2ms'
 
 var imageOffer = 'WindowsServer'
 var imagePublisher = 'MicrosoftWindowsServer'
-var imageSKU = '2022-R2-Datacenter'
+var imageSKU = '2022-datacenter'
 var vnetID = resourceId('Microsoft.Network/virtualNetworks', virtualNetworkName)
 var adPubIPName = 'adPubIP${deploymentNumber}'
 var adNicName = 'ad-${NetworkInterfaceName}${deploymentNumber}'
