@@ -10,26 +10,22 @@ param deploymentNumber string = '1'
 param virtualNetworkName string = 'vnet'
 param cliSubnetName string = 'cliSubnet${deploymentNumber}'
 param adDomainName string = 'contoso.com'
-param clientsToDeploy array = []
+param clientsToDeploy int
 
 @description('Select a VM SKU')
 param vmSize string = 'Standard_B2ms'
 param assetLocation string
-
-@description('Enter the full Azure ARM resource string to the location where you store your client images.')
-param clientImageBaseResource string
 
 param location string = resourceGroup().location
 
 var shortDomainName = split(adDomainName, '.')[0]
 var pubIpAddressName = toLower('cliPubIp${resourceGroup().name}${deploymentNumber}')
 var nicName = 'nic-${deploymentNumber}-'
-var copyCount = length(clientsToDeploy)
 var domainJoinOptions = 3
 var ConfigRDPUsers = 'ConfigRDPUsers.ps1'
 var ConfigRDPUsersUri = '${assetLocation}Scripts/ConfigRDPUsers.ps1'
 
-resource pubIpAddressName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for i in range(0, copyCount): {
+resource pubIpAddressName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for i in range(0, clientsToDeploy): {
   name: '${pubIpAddressName}${(i + 1)})'
   location: location
   tags: {
@@ -39,12 +35,12 @@ resource pubIpAddressName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [
   properties: {
     publicIPAllocationMethod: 'Dynamic'
     dnsSettings: {
-      domainNameLabel: toLower('win${clientsToDeploy[i]}-${(i + 1)}-${uniqueString(resourceGroup().id)}')
+      domainNameLabel: toLower('win${i}-${(i + 1)}-${uniqueString(resourceGroup().id)}')
     }
   }
 }]
 
-resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in range(0, copyCount): {
+resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in range(0, clientsToDeploy): {
   name: '${nicName}${(i + 1)})'
   location: location
   tags: {
@@ -72,8 +68,8 @@ resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in 
   ]
 }]
 
-resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in range(0, copyCount): {
-  name: 'cli-Win${clientsToDeploy[i]}-${(i + 1)}-${deploymentNumber}'
+resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in range(0, clientsToDeploy): {
+  name: 'cli-Win${i}-${(i + 1)}-${deploymentNumber}'
   location: location
   tags: {
     displayName: 'ClientVM'
@@ -84,7 +80,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
       vmSize: vmSize
     }
     osProfile: {
-      computerName: 'win${clientsToDeploy[i]}-${(i + 1)}'
+      computerName: 'win${i}-${(i + 1)}'
       adminUsername: adminUsername
       adminPassword: adminPassword
       windowsConfiguration: {
@@ -93,7 +89,10 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
     }
     storageProfile: {
       imageReference: {
-        id: resourceId('${clientImageBaseResource}OSImage_Win', '${clientsToDeploy[i]}')
+        publisher: 'MicrosoftWindowsDesktop'
+        offer: 'Windows-10'
+        sku: '20H2'
+        version: 'latest'
       }
     }
     networkProfile: {
@@ -109,8 +108,8 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
   ]
 }]
 
-resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = [for i in range(0, copyCount): {
-  name: 'cli-Win${clientsToDeploy[i]}-${(i + 1)}-${deploymentNumber}/ConfigRDPUsers'
+resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = [for i in range(0, clientsToDeploy): {
+  name: 'cli-Win${i}-${(i + 1)}-${deploymentNumber}/ConfigRDPUsers'
   location: location
   tags: {
     displayName: 'ConfigRDPUsers'
@@ -134,8 +133,8 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Co
   ]
 }]
 
-resource cli_Win_ClientsToDeploy_1_deploymentNumber_joindomain 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, copyCount): {
-  name: 'cli-Win${clientsToDeploy[i]}-${(i + 1)}-${deploymentNumber}/joindomain'
+resource cli_Win_ClientsToDeploy_1_deploymentNumber_joindomain 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, clientsToDeploy): {
+  name: 'cli-Win${i}-${(i + 1)}-${deploymentNumber}/joindomain'
   location: location
   tags: {
     displayName: 'ClientVMJoin'

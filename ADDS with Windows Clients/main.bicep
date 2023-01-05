@@ -4,8 +4,8 @@ param assetLocation string = 'https://raw.githubusercontent.com/pthoor/deploy-az
 // Key Vault parameters
 @description('Globally unique Vault name must only contain alphanumeric characters and dashes and cannot start with a number.')
 //param keyvaultName string
-param sku string
-param skuCode string
+param sku string = 'standard'
+param skuCode string = 'A'
 
 // Log Analytics workspace parameters
 @description('Globally unique name for the Log Analytics workspace.')
@@ -130,13 +130,19 @@ param dmzSubnetAddressRange string = '10.0.2.0/24'
 @description('The address range of the desired subnet for clients.')
 param cliSubnetAddressRange string = '10.0.3.0/24'
 
-@description('ClientsToDeploy, array, possible values: 7, 8, 10-1511, 10-1607, 10-1703. Examples: Single Win7 VM = ["7"]. Two Win7, one Win10 Creators = ["7", "7", "10-1703"].')
-param clientsToDeploy array = [
-  '10-1607'
-]
-
-@description('Enter the full Azure ARM resource string to the location where you store your client images, like /subscriptions/&lt;YourAzureSubscriptionID&gt;/resourceGroups/&lt;YourImageRG&gt;/providers/Microsoft.Compute/images/')
-param clientImageBaseResource string
+@description('ClientsToDeploy, possible values: 1-9.')
+@allowed([
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+])
+param clientsToDeploy int = 1
 
 param location string = resourceGroup().location
 
@@ -462,7 +468,6 @@ module clientVMs 'modules/Compute/client-vm.bicep' = {
     virtualNetworkName: virtualNetworkName
     cliSubnetName: cliSubnetName
     adDomainName: adDomainName
-    clientImageBaseResource: clientImageBaseResource
     clientsToDeploy: clientsToDeploy
     vmSize: vmSize
     assetLocation: assetLocation
