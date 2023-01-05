@@ -16,4 +16,4 @@ jobs:
         # Bicep main file path
         bicepFilePath: './active-directory-with-windows-client/main.bicep'
         # ARM template output path
-        outputFilePath: './active-directory-with-windows-client/azuredeploy.json'
+        outputFilePath: ./azuredeploy.json
