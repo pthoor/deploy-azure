@@ -2,7 +2,8 @@ name: Bicep to ARM converter
 
 on:
   push:
-    branches: [ "main" ]
+    paths:
+      - 'active-directory-with-windows-client/main.bicep'
 
 jobs:
   build:
@@ -13,6 +14,6 @@ jobs:
       uses: Azure/bicep-build-action@v1.0.1
       with:
         # Bicep main file path
-        bicepFilePath: '/ADDS with Windows Clients/main.bicep'
+        bicepFilePath: './active-directory-with-windows-client/main.bicep'
         # ARM template output path
-        outputFilePath: '/ADDS with Windows Clients/azuredeploy.json'
+        outputFilePath: './active-directory-with-windows-client/azuredeploy.json'
