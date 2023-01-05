@@ -259,7 +259,7 @@ module virtualNetworkDNSUpdate 'modules/Networking/vnet-dns.bicep' = {
   ]
 }
 
-resource adVMName_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = {
+resource adVMName_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
   name: '${adVMName}/Microsoft.Powershell.DSC'
   location: location
   tags: {
@@ -351,7 +351,7 @@ module adfsVMs 'modules/Compute/adfs-vm.bicep' = {
   ]
 }
 
-resource adfsVMName_1_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = [for i in range(0, adfsDeployCount): {
+resource adfsVMName_1_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
   name: '${adfsVMName}${(i + 1)}/Microsoft.Powershell.DSC'
   location: location
   tags: {
@@ -389,7 +389,7 @@ resource adfsVMName_1_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachine
   ]
 }]
 
-resource adfsVMName_1_InstallADFS 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = [for i in range(0, adfsDeployCount): {
+resource adfsVMName_1_InstallADFS 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
   name: '${adfsVMName}${(i + 1)}/InstallADFS'
   location: location
   tags: {
@@ -490,7 +490,7 @@ module workspace 'modules/sentinel.bicep' = {
 }
 
 // Create data collection rule
-resource dcr 'Microsoft.Insights/dataCollectionRules@2021-04-01' = {
+resource dcr 'Microsoft.Insights/dataCollectionRules@2021-09-01-preview' = {
   name: 'DCR'
   location: location
   kind: 'Windows'

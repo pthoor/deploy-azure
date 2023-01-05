@@ -20,7 +20,7 @@ var dmzSubnetId = '${vnetID}/subnets/${dmzSubnetName}'
 var cliSubnetId = '${vnetID}/subnets/${cliSubnetName}'
 var location = resourceGroup().location
 
-resource adNSGName 'Microsoft.Network/networkSecurityGroups@2015-06-15' = {
+resource adNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: adNSGName_var
   location: location
   tags: {
@@ -438,7 +438,7 @@ resource adNSGName 'Microsoft.Network/networkSecurityGroups@2015-06-15' = {
   }
 }
 
-resource DMZNSGName 'Microsoft.Network/networkSecurityGroups@2015-06-15' = {
+resource DMZNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: dmzNSGName_var
   location: location
   tags: {
@@ -478,7 +478,7 @@ resource DMZNSGName 'Microsoft.Network/networkSecurityGroups@2015-06-15' = {
   }
 }
 
-resource cliNSGName 'Microsoft.Network/networkSecurityGroups@2015-06-15' = {
+resource cliNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: cliNSGName_var
   location: location
   tags: {

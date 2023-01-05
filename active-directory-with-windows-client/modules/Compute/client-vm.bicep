@@ -108,7 +108,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
   ]
 }]
 
-resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = [for i in range(0, clientsToDeploy): {
+resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, clientsToDeploy): {
   name: 'cli-Win${i}-${(i + 1)}-${deploymentNumber}/ConfigRDPUsers'
   location: location
   tags: {
