@@ -13,6 +13,6 @@ jobs:
       uses: Azure/bicep-build-action@v1.0.1
       with:
         # Bicep main file path
-        bicepFilePath: 'ADDS with Windows Clients/main.bicep'
+        bicepFilePath: '/ADDS with Windows Clients/main.bicep'
         # ARM template output path
-        outputFilePath: 'ADDS with Windows Clients/azuredeploy.json'
+        outputFilePath: '/ADDS with Windows Clients/azuredeploy.json'
