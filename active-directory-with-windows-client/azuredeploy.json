@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "15625070166358559350"
+      "templateHash": "13395867667755975998"
     }
   },
   "parameters": {
@@ -1430,7 +1430,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "18077122150170875909"
+              "templateHash": "8665310890671560953"
             }
           },
           "parameters": {
@@ -1608,7 +1608,7 @@
                 "typeHandlerVersion": "2.77",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
-                  "ModulesUrl": "https://github.com/pthoor/deploy-azure/blob/e28cf819515ebeec103120a54989bd3c1c7e1e28/active-directory-with-windows-client/scripts/adDSCConfiguration.zip",
+                  "ModulesUrl": "https://github.com/pthoor/deploy-azure/raw/main/active-directory-with-windows-client/scripts/adDSCConfiguration.zip",
                   "ConfigurationFunction": "adDSCConfiguration.ps1\\Deploy-DomainServices",
                   "Properties": {
                     "domainFQDN": "[parameters('adDomainName')]",
