@@ -145,7 +145,7 @@ resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08
     typeHandlerVersion: '2.77'
     autoUpgradeMinorVersion: true
     settings: {
-      ModulesUrl: 'https://github.com/pthoor/deploy-azure/blob/e28cf819515ebeec103120a54989bd3c1c7e1e28/active-directory-with-windows-client/scripts/adDSCConfiguration.ps1'
+      ModulesUrl: 'https://github.com/pthoor/deploy-azure/blob/e28cf819515ebeec103120a54989bd3c1c7e1e28/active-directory-with-windows-client/scripts/adDSCConfiguration.zip'
       ConfigurationFunction: 'adDSCConfiguration.ps1\\Deploy-DomainServices'
       Properties: {
         domainFQDN: adDomainName
