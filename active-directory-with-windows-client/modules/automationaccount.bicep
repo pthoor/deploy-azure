@@ -17,20 +17,20 @@ resource AutomationAccount 'Microsoft.Automation/automationAccounts@2022-08-08' 
   }
 }
 
-resource ActiveDirectoryDsc 'Microsoft.Automation/automationAccounts/modules@2020-01-13-preview' = {
+resource ActiveDirectoryDsc 'Microsoft.Automation/automationAccounts/modules@2022-08-08' = {
   name: '${automationaccountname}/ActiveDirectoryDsc'
   dependsOn: [
     AutomationAccount
   ]
   properties: {
     contentLink: {
-      uri: 'https://www.powershellgallery.com/packages/ActiveDirectoryDsc/6.2.0'
+      uri: 'https://www.powershellgallery.com/api/v2/package/ActiveDirectoryDsc/6.2.0'
       version: '6.2.0'
     }
   }
 }
 
-resource ComputerManagementDsc 'Microsoft.Automation/automationAccounts/modules@2020-01-13-preview' = {
+resource ComputerManagementDsc 'Microsoft.Automation/automationAccounts/modules@2022-08-08' = {
   name: '${automationaccountname}/ComputerManagementDsc'
   dependsOn: [
     AutomationAccount
@@ -38,38 +38,22 @@ resource ComputerManagementDsc 'Microsoft.Automation/automationAccounts/modules@
   ]
   properties: {
     contentLink: {
-      uri: 'https://www.powershellgallery.com/packages/ComputerManagementDsc/8.5.0'
+      uri: 'https://www.powershellgallery.com/api/v2/package/ComputerManagementDsc/8.5.0'
       version: '8.5.0'
     }
   }
 }
 
-resource PSDesiredStateConfiguration 'Microsoft.Automation/automationAccounts/modules@2020-01-13-preview' = {
-  name: '${automationaccountname}/PSDesiredStateConfiguration'
-  dependsOn: [
-    AutomationAccount
-    ActiveDirectoryDsc
-    ComputerManagementDsc
-  ]
-  properties: {
-    contentLink: {
-      uri: 'https://www.powershellgallery.com/packages/PSDesiredStateConfiguration/2.0.5'
-      version: '2.0.5'
-    }
-  }
-}
-
-resource NetworkingDsc 'Microsoft.Automation/automationAccounts/modules@2020-01-13-preview' = {
+resource NetworkingDsc 'Microsoft.Automation/automationAccounts/modules@2022-08-08' = {
   name: '${automationaccountname}/NetworkingDsc'
   dependsOn: [
     AutomationAccount
     ActiveDirectoryDsc
     ComputerManagementDsc
-    PSDesiredStateConfiguration
   ]
   properties: {
     contentLink: {
-      uri: 'https://www.powershellgallery.com/packages/NetworkingDsc/9.0.0'
+      uri: 'https://www.powershellgallery.com/api/v2/package/NetworkingDsc/9.0.0'
       version: '9.0.0'
     }
   }

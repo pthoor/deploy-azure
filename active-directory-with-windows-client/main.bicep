@@ -253,6 +253,7 @@ module adVMs 'modules/Compute/ad-vm.bicep' = {
   }
   dependsOn: [
     virtualNetwork
+    automationaccount
   ]
 }
 

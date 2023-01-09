@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "7190084863918750451"
+      "templateHash": "10157837901784174684"
     }
   },
   "parameters": {
@@ -664,7 +664,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "779855900338255680"
+              "templateHash": "18137591385017649753"
             }
           },
           "parameters": {
@@ -698,11 +698,11 @@
             },
             {
               "type": "Microsoft.Automation/automationAccounts/modules",
-              "apiVersion": "2020-01-13-preview",
+              "apiVersion": "2022-08-08",
               "name": "[format('{0}/ActiveDirectoryDsc', parameters('automationaccountname'))]",
               "properties": {
                 "contentLink": {
-                  "uri": "https://www.powershellgallery.com/packages/ActiveDirectoryDsc/6.2.0",
+                  "uri": "https://www.powershellgallery.com/api/v2/package/ActiveDirectoryDsc/6.2.0",
                   "version": "6.2.0"
                 }
               },
@@ -712,11 +712,11 @@
             },
             {
               "type": "Microsoft.Automation/automationAccounts/modules",
-              "apiVersion": "2020-01-13-preview",
+              "apiVersion": "2022-08-08",
               "name": "[format('{0}/ComputerManagementDsc', parameters('automationaccountname'))]",
               "properties": {
                 "contentLink": {
-                  "uri": "https://www.powershellgallery.com/packages/ComputerManagementDsc/8.5.0",
+                  "uri": "https://www.powershellgallery.com/api/v2/package/ComputerManagementDsc/8.5.0",
                   "version": "8.5.0"
                 }
               },
@@ -727,35 +727,18 @@
             },
             {
               "type": "Microsoft.Automation/automationAccounts/modules",
-              "apiVersion": "2020-01-13-preview",
-              "name": "[format('{0}/PSDesiredStateConfiguration', parameters('automationaccountname'))]",
-              "properties": {
-                "contentLink": {
-                  "uri": "https://www.powershellgallery.com/packages/PSDesiredStateConfiguration/2.0.5",
-                  "version": "2.0.5"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[1])]",
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]",
-                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[1])]"
-              ]
-            },
-            {
-              "type": "Microsoft.Automation/automationAccounts/modules",
-              "apiVersion": "2020-01-13-preview",
+              "apiVersion": "2022-08-08",
               "name": "[format('{0}/NetworkingDsc', parameters('automationaccountname'))]",
               "properties": {
                 "contentLink": {
-                  "uri": "https://www.powershellgallery.com/packages/NetworkingDsc/9.0.0",
+                  "uri": "https://www.powershellgallery.com/api/v2/package/NetworkingDsc/9.0.0",
                   "version": "9.0.0"
                 }
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[1])]",
                 "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]",
-                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[1])]",
-                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/PSDesiredStateConfiguration', parameters('automationaccountname')), '/')[0], split(format('{0}/PSDesiredStateConfiguration', parameters('automationaccountname')), '/')[1])]"
+                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[1])]"
               ]
             }
           ]
@@ -1689,6 +1672,7 @@
         }
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'automationaccount')]",
         "[resourceId('Microsoft.Resources/deployments', 'virtualNetwork')]"
       ]
     },
