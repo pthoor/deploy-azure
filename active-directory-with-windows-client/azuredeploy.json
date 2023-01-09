@@ -5,13 +5,13 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "13395867667755975998"
+      "templateHash": "7190084863918750451"
     }
   },
   "parameters": {
     "assetLocation": {
       "type": "string",
-      "defaultValue": "https://raw.githubusercontent.com/pthoor/deploy-azure/main/ADDS%20with%20Windows%20Clients/scripts/",
+      "defaultValue": "https://raw.githubusercontent.com/pthoor/deploy-azure/main/active-directory-with-windows-client/scripts/",
       "metadata": {
         "description": "This is the location in which all the linked templates are stored."
       }
@@ -26,12 +26,6 @@
     "skuCode": {
       "type": "string",
       "defaultValue": "A"
-    },
-    "logAnalyticsWorkspaceName": {
-      "type": "string",
-      "metadata": {
-        "description": "Globally unique name for the Log Analytics workspace."
-      }
     },
     "logAnalyticsWorkspaceRetention": {
       "type": "int",
@@ -227,6 +221,7 @@
   },
   "variables": {
     "automationaccountname": "[format('aa{0}', uniqueString(resourceGroup().id))]",
+    "logAnalyticsWorkspaceName": "[format('la{0}', uniqueString(resourceGroup().id))]",
     "adfsDeployCount": "[int(parameters('AdfsFarmCount'))]",
     "networkInterfaceName": "NIC",
     "addcVMNameSuffix": "dc",
@@ -492,7 +487,7 @@
         "dataFlows": [
           {
             "destinations": [
-              "[parameters('logAnalyticsWorkspaceName')]"
+              "[variables('logAnalyticsWorkspaceName')]"
             ],
             "streams": [
               "Microsoft-SecurityEvent"
@@ -527,7 +522,7 @@
         "destinations": {
           "logAnalytics": [
             {
-              "name": "[parameters('logAnalyticsWorkspaceName')]",
+              "name": "[variables('logAnalyticsWorkspaceName')]",
               "workspaceResourceId": "[reference(resourceId('Microsoft.Resources/deployments', 'microsoftSentinel'), '2020-10-01').outputs.workspaceResourceId.value]"
             }
           ]
@@ -669,7 +664,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "15898083793961208092"
+              "templateHash": "779855900338255680"
             }
           },
           "parameters": {
@@ -700,6 +695,68 @@
                   "name": "Basic"
                 }
               }
+            },
+            {
+              "type": "Microsoft.Automation/automationAccounts/modules",
+              "apiVersion": "2020-01-13-preview",
+              "name": "[format('{0}/ActiveDirectoryDsc', parameters('automationaccountname'))]",
+              "properties": {
+                "contentLink": {
+                  "uri": "https://www.powershellgallery.com/packages/ActiveDirectoryDsc/6.2.0",
+                  "version": "6.2.0"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Automation/automationAccounts/modules",
+              "apiVersion": "2020-01-13-preview",
+              "name": "[format('{0}/ComputerManagementDsc', parameters('automationaccountname'))]",
+              "properties": {
+                "contentLink": {
+                  "uri": "https://www.powershellgallery.com/packages/ComputerManagementDsc/8.5.0",
+                  "version": "8.5.0"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[1])]",
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Automation/automationAccounts/modules",
+              "apiVersion": "2020-01-13-preview",
+              "name": "[format('{0}/PSDesiredStateConfiguration', parameters('automationaccountname'))]",
+              "properties": {
+                "contentLink": {
+                  "uri": "https://www.powershellgallery.com/packages/PSDesiredStateConfiguration/2.0.5",
+                  "version": "2.0.5"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[1])]",
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]",
+                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[1])]"
+              ]
+            },
+            {
+              "type": "Microsoft.Automation/automationAccounts/modules",
+              "apiVersion": "2020-01-13-preview",
+              "name": "[format('{0}/NetworkingDsc', parameters('automationaccountname'))]",
+              "properties": {
+                "contentLink": {
+                  "uri": "https://www.powershellgallery.com/packages/NetworkingDsc/9.0.0",
+                  "version": "9.0.0"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[1])]",
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]",
+                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[1])]",
+                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/PSDesiredStateConfiguration', parameters('automationaccountname')), '/')[0], split(format('{0}/PSDesiredStateConfiguration', parameters('automationaccountname')), '/')[1])]"
+              ]
             }
           ]
         }
@@ -2436,7 +2493,7 @@
             "value": "[parameters('location')]"
           },
           "logAnalyticsWorkspaceName": {
-            "value": "[parameters('logAnalyticsWorkspaceName')]"
+            "value": "[variables('logAnalyticsWorkspaceName')]"
           },
           "retentionInDays": {
             "value": "[parameters('logAnalyticsWorkspaceRetention')]"

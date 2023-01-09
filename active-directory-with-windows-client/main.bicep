@@ -1,5 +1,5 @@
 @description('This is the location in which all the linked templates are stored.')
-param assetLocation string = 'https://raw.githubusercontent.com/pthoor/deploy-azure/main/ADDS%20with%20Windows%20Clients/scripts/'
+param assetLocation string = 'https://raw.githubusercontent.com/pthoor/deploy-azure/main/active-directory-with-windows-client/scripts/'
 
 // Key Vault parameters
 @description('Globally unique Vault name must only contain alphanumeric characters and dashes and cannot start with a number.')
@@ -8,8 +8,8 @@ param sku string = 'standard'
 param skuCode string = 'A'
 
 // Log Analytics workspace parameters
-@description('Globally unique name for the Log Analytics workspace.')
-param logAnalyticsWorkspaceName string
+//@description('Globally unique name for the Log Analytics workspace.')
+//param logAnalyticsWorkspaceName string
 
 @description('Duration to retain Log Analytics workspace data, in days. Note that the pay-as-you-go pricing tier has a minimum 30-day retention.')
 @minValue(30)
@@ -147,6 +147,7 @@ param clientsToDeploy int = 1
 param location string = resourceGroup().location
 
 var automationaccountname = 'aa${uniqueString(resourceGroup().id)}'
+var logAnalyticsWorkspaceName = 'la${uniqueString(resourceGroup().id)}'
 var adfsDeployCount = int(AdfsFarmCount)
 var networkInterfaceName = 'NIC'
 var addcVMNameSuffix = 'dc'
