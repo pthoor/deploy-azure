@@ -13,7 +13,7 @@ param DeployADTemplateUri string = 'https://raw.githubusercontent.com/pthoor/dep
 
 @description('When deploying the stack N times, define the instance - this will be appended to some resource names to avoid collisions.')
 param deploymentNumber string = '1'
-param adSubnetName string = 'adSubnet${deploymentNumber}'
+param adSubnetName string = 'adSubnet'
 param adVMName string = 'AZAD'
 param adDomainName string = 'contoso.com'
 
@@ -30,7 +30,6 @@ param vmSize string = 'Standard_B2ms'
 var imageOffer = 'WindowsServer'
 var imagePublisher = 'MicrosoftWindowsServer'
 var imageSKU = '2022-datacenter'
-var vnetID = resourceId('Microsoft.Network/virtualNetworks', virtualNetworkName)
 var adPubIPName = 'adPubIP${deploymentNumber}'
 var adNicName = 'ad-${NetworkInterfaceName}${deploymentNumber}'
 
@@ -61,7 +60,7 @@ resource ad_NicName 'Microsoft.Network/networkInterfaces@2022-07-01' = {
         properties: {
           privateIPAllocationMethod: 'Static'
           subnet: {
-            id: resourceId('${vnetID}/subnets/', '${adSubnetName}')
+            id: resourceId('Microsoft.Network/virtualNetworks/subnets/', virtualNetworkName, adSubnetName)
           }
           privateIPAddress: adIP
           publicIPAddress: {
@@ -110,27 +109,56 @@ resource adVMName_resource 'Microsoft.Compute/virtualMachines@2022-08-01' = {
   }
 }
 
+//resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
+//  name: '${adVMName}/DeployAD'
+//  location: location
+//  tags: {
+//    displayName: 'DeployAD'
+//  }
+//  properties: {
+//    type: 'CustomScriptExtension'
+//    forceUpdateTag: '1.0.1'
+//    typeHandlerVersion: '1.9'
+//    autoUpgradeMinorVersion: true
+//    settings: {
+//      fileUris: [
+//        DeployADTemplateUri
+//      ]
+//      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${DeployADTemplateUri} ${adDomainName} ${adminPassword}'
+//    }
+//  }
+//  dependsOn: [
+//    adVMName_resource
+//  ]
+//}
+
+// Use PowerShell DSC to deploy Active Directory Domain Services on the domain controller
 resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
-  name: '${adVMName}/DeployAD'
-  location: location
-  tags: {
-    displayName: 'DeployAD'
-  }
-  properties: {
-    type: 'CustomScriptExtension'
-    forceUpdateTag: '1.0.1'
-    typeHandlerVersion: '1.9'
-    autoUpgradeMinorVersion: true
-    settings: {
-      fileUris: [
-        DeployADTemplateUri
-      ]
-      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${DeployADTemplateUri} ${adDomainName} ${adminPassword}'
-    }
-  }
+  name: '${adVMName}/Microsoft.Powershell.DSC'
   dependsOn: [
     adVMName_resource
   ]
+  location: location
+  properties: {
+    publisher: 'Microsoft.Powershell'
+    type: 'DSC'
+    typeHandlerVersion: '2.77'
+    autoUpgradeMinorVersion: true
+    settings: {
+      ModulesUrl: 'https://github.com/pthoor/deploy-azure/blob/e28cf819515ebeec103120a54989bd3c1c7e1e28/active-directory-with-windows-client/scripts/adDSCConfiguration.ps1'
+      ConfigurationFunction: 'adDSCConfiguration.ps1\\Deploy-DomainServices'
+      Properties: {
+        domainFQDN: adDomainName
+        adminCredential: {
+          UserName: adminUsername
+          Password: 'PrivateSettingsRef:adminPassword'
+        }
+      }
+    }
+    protectedSettings: {
+      Items: {
+          adminPassword: adminPassword
+      }
+    }
+  }
 }
-
-//output ADVMFQDN string = adVMName_resource.properties.DnsSettings.Fqdn

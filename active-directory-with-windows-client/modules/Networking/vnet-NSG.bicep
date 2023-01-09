@@ -5,6 +5,8 @@ param deploymentNumber string = '1'
 param virtualNetworkName string = 'vnet'
 param subnets array
 
+param location string = resourceGroup().location
+
 var vnetID = resourceId('Microsoft.Network/virtualNetworks', virtualNetworkName)
 var adNSGName_var = 'INT-AD${deploymentNumber}'
 var dmzNSGName_var = 'DMZ-WAP${deploymentNumber}'
@@ -18,7 +20,6 @@ var cliSubnetRange = subnets[2].properties.addressPrefix
 var adSubnetId = '${vnetID}/subnets/${adSubnetName}'
 var dmzSubnetId = '${vnetID}/subnets/${dmzSubnetName}'
 var cliSubnetId = '${vnetID}/subnets/${cliSubnetName}'
-var location = resourceGroup().location
 
 resource adNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: adNSGName_var

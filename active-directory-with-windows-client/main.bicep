@@ -146,6 +146,7 @@ param clientsToDeploy int = 1
 
 param location string = resourceGroup().location
 
+var automationaccountname = 'aa${uniqueString(resourceGroup().id)}'
 var adfsDeployCount = int(AdfsFarmCount)
 var networkInterfaceName = 'NIC'
 var addcVMNameSuffix = 'dc'
@@ -203,6 +204,14 @@ var adfsDSCConfigurationFunction = 'adfsDSCConfiguration.ps1\\Main'
 var wapDSCConfigurationFunction = 'wapDSCConfiguration.ps1\\Main'
 var WAPPubIpDnsFQDN = '${publicIPAddressDNSName}{0}.${toLower(replace(location, ' ', ''))}.cloudapp.azure.com'
 
+module automationaccount 'modules/automationaccount.bicep' = {
+  name: 'automationaccount'
+  params: {
+    location: location
+    automationaccountname: automationaccountname
+  }
+}
+
 module virtualNetwork 'modules/Networking/vnet.bicep' = {
   name: 'virtualNetwork'
   params: {
@@ -219,6 +228,7 @@ module virtualNetwork 'modules/Networking/vnet.bicep' = {
 module NSGs 'modules/Networking/vnet-NSG.bicep' = {
   name: 'NSGs'
   params: {
+    location: location
     virtualNetworkName: virtualNetworkName
     subnets: subnets
     deploymentNumber: deploymentNumber
