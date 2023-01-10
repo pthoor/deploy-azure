@@ -11,7 +11,7 @@ Configuration Deploy-DomainServices
         [System.Management.Automation.PSCredential] $adminCredential
     )
 
-    #Import-DscResource -ModuleName 'PSDesiredStateConfiguration'
+    Import-DscResource -ModuleName 'PSDscResources'
     Import-DscResource -ModuleName 'ActiveDirectoryDsc'
     Import-DscResource -ModuleName 'ComputerManagementDsc'
     Import-DscResource -ModuleName 'NetworkingDsc'

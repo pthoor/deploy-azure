@@ -64,7 +64,7 @@ resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in 
     ]
   }
   dependsOn: [
-    pubIpAddressName_1[i]
+    pubIpAddressName_1
   ]
 }]
 
@@ -104,32 +104,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
     }
   }
   dependsOn: [
-    nicName_1[i]
-  ]
-}]
-
-resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, clientsToDeploy): {
-  name: 'cli-Win${i}/ConfigRDPUsers'
-  location: location
-  tags: {
-    displayName: 'ConfigRDPUsers'
-    isClient: 'true'
-  }
-  properties: {
-    publisher: 'Microsoft.Compute'
-    type: 'CustomScriptExtension'
-    typeHandlerVersion: '1.9'
-    autoUpgradeMinorVersion: true
-    forceUpdateTag: '1.0.1'
-    settings: {
-      fileUris: [
-        ConfigRDPUsersUri
-      ]
-      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${ConfigRDPUsers}'
-    }
-  }
-  dependsOn: [
-    cli_Win_ClientsToDeploy_1_deploymentNumber[i]
+    nicName_1
   ]
 }]
 
@@ -157,6 +132,31 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber_joindomain 'Microsoft.Comput
     }
   }
   dependsOn: [
-    cli_Win_ClientsToDeploy_1_deploymentNumber[i]
+    cli_Win_ClientsToDeploy_1_deploymentNumber
+  ]
+}]
+
+resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, clientsToDeploy): {
+  name: 'cli-Win${i}/ConfigRDPUsers'
+  location: location
+  tags: {
+    displayName: 'ConfigRDPUsers'
+    isClient: 'true'
+  }
+  properties: {
+    publisher: 'Microsoft.Compute'
+    type: 'CustomScriptExtension'
+    typeHandlerVersion: '1.9'
+    autoUpgradeMinorVersion: true
+    forceUpdateTag: '1.0.1'
+    settings: {
+      fileUris: [
+        ConfigRDPUsersUri
+      ]
+      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${ConfigRDPUsers}'
+    }
+  }
+  dependsOn: [
+    cli_Win_ClientsToDeploy_1_deploymentNumber
   ]
 }]

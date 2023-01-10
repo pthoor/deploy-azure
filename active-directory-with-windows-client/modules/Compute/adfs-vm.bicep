@@ -81,7 +81,7 @@ resource wapPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for 
 }]
 
 resource adfsNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in range(0, adfsDeployCount): {
-  name: '${adfsNICName}${(i + 1)}'
+  name: '${adfsNICName}${i}'
   location: location
   tags: {
     displayName: 'adfsNIC'
@@ -176,7 +176,7 @@ resource adfsVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in
 }]
 
 resource adfsVMName_1_joindomain 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
-  name: '${adfsVMName}${(i + 1)}/joindomain'
+  name: '${adfsVMName}${i}/joindomain'
   location: location
   tags: {
     displayName: 'adfsVMJoin'

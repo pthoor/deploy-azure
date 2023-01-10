@@ -271,72 +271,6 @@ module virtualNetworkDNSUpdate 'modules/Networking/vnet-dns.bicep' = {
   ]
 }
 
-resource adVMName_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
-  name: '${adVMName}/Microsoft.Powershell.DSC'
-  location: location
-  tags: {
-    displayName: 'adDSC'
-  }
-  properties: {
-    publisher: 'Microsoft.Powershell'
-    type: 'DSC'
-    typeHandlerVersion: '2.83'
-    forceUpdateTag: '1.02'
-    autoUpgradeMinorVersion: true
-    settings: {
-      modulesUrl: adDSCTemplate
-      configurationFunction: adDSCConfigurationFunction
-      properties: [
-        {
-          Name: 'Subject'
-          Value: WAPPubIpDnsFQDN
-          TypeName: 'System.String'
-        }
-        {
-          Name: 'ADFSFarmCount'
-          Value: AdfsFarmCount
-          TypeName: 'System.Integer'
-        }
-        {
-          Name: 'AdminCreds'
-          Value: {
-            UserName: adminUsername
-            Password: 'PrivateSettingsRef:AdminPassword'
-          }
-          TypeName: 'System.Management.Automation.PSCredential'
-        }
-        {
-          Name: 'ADFSIPAddress'
-          Value: adfsIP
-          TypeName: 'System.String'
-        }
-        {
-          Name: 'usersArray'
-          Value: usersArray
-          TypeName: 'System.Object'
-        }
-        {
-          Name: 'UserCreds'
-          Value: {
-            UserName: 'user'
-            Password: 'PrivateSettingsRef:UserPassword'
-          }
-          TypeName: 'System.Management.Automation.PSCredential'
-        }
-      ]
-    }
-    protectedSettings: {
-      Items: {
-        AdminPassword: adminPassword
-        UserPassword: defaultUserPassword
-      }
-    }
-  }
-  dependsOn: [
-    adVMs
-  ]
-}
-
 module adfsVMs 'modules/Compute/adfs-vm.bicep' = {
   name: 'adfsVMs'
   params: {
@@ -361,46 +295,8 @@ module adfsVMs 'modules/Compute/adfs-vm.bicep' = {
   ]
 }
 
-resource adfsVMName_1_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
-  name: '${adfsVMName}${(i + 1)}/Microsoft.Powershell.DSC'
-  location: location
-  tags: {
-    displayName: 'adfsDSC'
-  }
-  properties: {
-    publisher: 'Microsoft.Powershell'
-    type: 'DSC'
-    typeHandlerVersion: '2.83'
-    autoUpgradeMinorVersion: true
-    forceUpdateTag: '1.01'
-    settings: {
-      modulesUrl: adfsDSCTemplate
-      configurationFunction: adfsDSCConfigurationFunction
-      properties: [
-        {
-          Name: 'AdminCreds'
-          Value: {
-            UserName: adminUsername
-            Password: 'PrivateSettingsRef:AdminPassword'
-          }
-          TypeName: 'System.Management.Automation.PSCredential'
-        }
-      ]
-    }
-    protectedSettings: {
-      Items: {
-        AdminPassword: adminPassword
-      }
-    }
-  }
-  dependsOn: [
-    adfsVMs
-    adVMName_Microsoft_Powershell_DSC
-  ]
-}]
-
 resource adfsVMName_1_InstallADFS 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
-  name: '${adfsVMName}${(i + 1)}/InstallADFS'
+  name: '${adfsVMName}${i}/InstallADFS'
   location: location
   tags: {
     displayName: 'DeployADFSFarm'
@@ -415,28 +311,6 @@ resource adfsVMName_1_InstallADFS 'Microsoft.Compute/virtualMachines/extensions@
         DeployADFSFarmTemplateUri
       ]
       commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${DeployADFSFarmTemplate} -Acct ${adminUsername} -PW ${adminPassword} -WapFqdn ${WAPPubIpDnsFQDN}'
-    }
-  }
-  dependsOn: [
-    adfsVMName_1_Microsoft_Powershell_DSC
-  ]
-}]
-
-resource wapVMName_1_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
-  name: '${wapVMName}${(i + 1)}/Microsoft.Powershell.DSC'
-  location: location
-  tags: {
-    displayName: 'wapDSCPrep'
-  }
-  properties: {
-    publisher: 'Microsoft.Powershell'
-    type: 'DSC'
-    typeHandlerVersion: '2.83'
-    autoUpgradeMinorVersion: true
-    settings: {
-      modulesUrl: adfsDSCTemplate
-      configurationFunction: wapDSCConfigurationFunction
-      properties: []
     }
   }
   dependsOn: [
@@ -463,7 +337,6 @@ resource wapVMName_1_CopyCertToWAP 'Microsoft.Compute/virtualMachines/extensions
     }
   }
   dependsOn: [
-    wapVMName_1_Microsoft_Powershell_DSC
     adfsVMName_1_InstallADFS
   ]
 }]

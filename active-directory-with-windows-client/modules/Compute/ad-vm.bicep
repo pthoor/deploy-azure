@@ -101,6 +101,10 @@ resource adVMName_resource 'Microsoft.Compute/virtualMachines@2022-08-01' = {
       osDisk: {
         caching: 'ReadWrite'
         createOption: 'FromImage'
+        managedDisk: {
+          storageAccountType: 'Premium_LRS'
+        }
+        deleteOption: 'Delete'
       }
     }
     networkProfile: {
@@ -110,6 +114,9 @@ resource adVMName_resource 'Microsoft.Compute/virtualMachines@2022-08-01' = {
         }
       ]
     }
+  }
+  identity:{
+    type: 'SystemAssigned'
   }
 }
 
@@ -133,60 +140,16 @@ resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08
   ]
 }
 
-// Use PowerShell DSC to deploy Active Directory Domain Services on the domain controller
-//resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
-//  name: '${adVMName}/Microsoft.Powershell.DSC'
-//  dependsOn: [
-//    adVMName_resource
-//  ]
-//  location: location
-//  properties: {
-//    publisher: 'Microsoft.Powershell'
-//    type: 'DSC'
-//    typeHandlerVersion: '2.77'
-//    autoUpgradeMinorVersion: true
-//    settings: {
-//      ModulesUrl: 'https://github.com/pthoor/deploy-azure/raw/main/active-directory-with-windows-client/scripts/adDSCConfiguration.zip'
-//      ConfigurationFunction: 'adDSCConfiguration.ps1\\Deploy-DomainServices'
-//      Properties: {
- //       domainFQDN: adDomainName
- //       adminCredential: {
- //         UserName: adminUsername
- //         Password: 'PrivateSettingsRef:adminPassword'
- //       }
- //     }
- //   }
- //   protectedSettings: {
- //     Items: {
- //         adminPassword: adminPassword
- //     }
-//    }
-//  }
-//}
+resource guestConfigExtension 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
+  parent: adVMName_resource
+  name: 'AzurePolicyforWindows'
+  location: location
+  properties: {
+    publisher: 'Microsoft.GuestConfiguration'
+    type: 'ConfigurationforWindows'
+    typeHandlerVersion: '1.0'
+    autoUpgradeMinorVersion: true
+    enableAutomaticUpgrade: true
+  }
+}
 
-//resource guestConfigExtension 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
-//  parent: adVMName_resource
-//  name: 'AzurePolicyforWindows'
-//  location: location
-//  properties: {
-//    publisher: 'Microsoft.GuestConfiguration'
-//    type: 'ConfigurationforWindows'
-//    typeHandlerVersion: '1.0'
-//    autoUpgradeMinorVersion: true
-//    enableAutomaticUpgrade: true
-//  }
-//}
-
-//resource myConfiguration 'Microsoft.GuestConfiguration/guestConfigurationAssignments@2022-01-25' = {
-//  name: 'adDSCConfiguration'
-//  scope: adVMName_resource
-//  location: location
-//  properties: {
-//    guestConfiguration: {
-//      name: 'adDSCConfiguration'
-//      version: '1.0.0'
-//      contentUri: 'https://github.com/pthoor/deploy-azure/raw/main/active-directory-with-windows-client/scripts/adDSCConfiguration.zip'
-//      assignmentType: 'ApplyAndMonitor'
-//    }
-//  }
-//}
