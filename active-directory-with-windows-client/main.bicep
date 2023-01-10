@@ -130,6 +130,9 @@ param dmzSubnetAddressRange string = '10.0.2.0/24'
 @description('The address range of the desired subnet for clients.')
 param cliSubnetAddressRange string = '10.0.3.0/24'
 
+@description('The address range of the desired subnet for Azure Bastion.')
+param bastionSubnetAddressRange string = '10.0.4.0/27'
+
 @description('ClientsToDeploy, possible values: 1-9.')
 @allowed([
   1
@@ -159,6 +162,8 @@ var adVMName = toUpper('${companyNamePrefix}${addcVMNameSuffix}')
 var adNSGName = 'INT-AD${deploymentNumber}'
 var virtualNetworkName = '${companyNamePrefix}${deploymentNumber}-vnet'
 var adSubnetName = 'adSubnet${deploymentNumber}'
+var bastionSubnetName = 'AzureBastionSubnet'
+var bastionNSGName = 'bastionNSG'
 var dmzNSGName = 'DMZ-WAP${deploymentNumber}'
 var dmzSubnetName = 'dmzSubnet${deploymentNumber}'
 var cliNSGName = 'INT-CLI${deploymentNumber}'
@@ -178,6 +183,15 @@ var subnets = [
       addressprefix: adSubnetAddressRange
       networkSecurityGroup: {
         id: resourceId('Microsoft.Network/networkSecurityGroups', adNSGName)
+      }
+    }
+  }
+  {
+    name: bastionSubnetName
+    properties: {
+      addressprefix: bastionSubnetAddressRange
+      networkSecurityGroup: {
+        id: resourceId('Microsoft.Network/networkSecurityGroups', bastionNSGName)
       }
     }
   }
@@ -447,7 +461,7 @@ resource domainControllerAssociation 'Microsoft.Insights/dataCollectionRuleAssoc
 
 // Create a data collection rule association for the workstation
 resource workstationVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing = {
-  name: 'clientVMs'
+  name: clientVMs.name
 }
 
 resource workstationAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = {

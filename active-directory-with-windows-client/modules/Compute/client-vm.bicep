@@ -54,7 +54,7 @@ resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in 
         properties: {
           privateIPAllocationMethod: 'Dynamic'
           publicIPAddress: {
-            id: resourceId('Microsoft.Network/publicIPAddresses', '${pubIpAddressName}${i})')
+            id: pubIpAddressName_1[i].id
           }
           subnet: {
             id: resourceId('Microsoft.Network/virtualNetworks/subnets/', virtualNetworkName, cliSubnetName)
