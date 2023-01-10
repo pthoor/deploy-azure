@@ -5,13 +5,13 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "10157837901784174684"
+      "templateHash": "7246423204415344814"
     }
   },
   "parameters": {
     "assetLocation": {
       "type": "string",
-      "defaultValue": "https://raw.githubusercontent.com/pthoor/deploy-azure/main/active-directory-with-windows-client/scripts/",
+      "defaultValue": "https://raw.githubusercontent.com/pthoor/deploy-azure/main/active-directory-with-windows-client/",
       "metadata": {
         "description": "This is the location in which all the linked templates are stored."
       }
@@ -239,11 +239,11 @@
     "cliSubnetName": "[format('clientSubnet{0}', parameters('deploymentNumber'))]",
     "publicIPAddressDNSName": "[toLower(format('{0}{1}-adfs', variables('companyNamePrefix'), parameters('deploymentNumber')))]",
     "wapVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('wapVMNameSuffix')))]",
-    "adDSCTemplate": "[format('{0}scripts/adDSC.zip', parameters('assetLocation'))]",
+    "adDSCTemplate": "[format('{0}scripts/adDSCConfiguration.zip', parameters('assetLocation'))]",
     "DeployADFSFarmTemplate": "InstallADFS.ps1",
-    "DeployADFSFarmTemplateUri": "[format('{0}Scripts/InstallADFS.ps1', parameters('assetLocation'))]",
+    "DeployADFSFarmTemplateUri": "[format('{0}scripts/InstallADFS.ps1', parameters('assetLocation'))]",
     "CopyCertToWAPTemplate": "CopyCertToWAP.ps1",
-    "CopyCertToWAPTemplateUri": "[format('{0}Scripts/CopyCertToWAP.ps1', parameters('assetLocation'))]",
+    "CopyCertToWAPTemplateUri": "[format('{0}scripts/CopyCertToWAP.ps1', parameters('assetLocation'))]",
     "adDSCConfigurationFunction": "adDSCConfiguration.ps1\\DomainController",
     "subnets": [
       {
@@ -274,7 +274,7 @@
         }
       }
     ],
-    "adfsDSCTemplate": "[format('{0}DSC/adfsDSC.zip', parameters('assetLocation'))]",
+    "adfsDSCTemplate": "[format('{0}scripts/adfsDSC.zip', parameters('assetLocation'))]",
     "adfsDSCConfigurationFunction": "adfsDSCConfiguration.ps1\\Main",
     "wapDSCConfigurationFunction": "wapDSCConfiguration.ps1\\Main",
     "WAPPubIpDnsFQDN": "[format('{0}{{0}}.{1}.cloudapp.azure.com', variables('publicIPAddressDNSName'), toLower(replace(parameters('location'), ' ', '')))]"
@@ -664,7 +664,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "18137591385017649753"
+              "templateHash": "3547453333675812020"
             }
           },
           "parameters": {
@@ -721,7 +721,6 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[1])]",
                 "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]"
               ]
             },
@@ -736,9 +735,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ActiveDirectoryDsc', parameters('automationaccountname')), '/')[1])]",
-                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]",
-                "[resourceId('Microsoft.Automation/automationAccounts/modules', split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[0], split(format('{0}/ComputerManagementDsc', parameters('automationaccountname')), '/')[1])]"
+                "[resourceId('Microsoft.Automation/automationAccounts', parameters('automationaccountname'))]"
               ]
             }
           ]
@@ -1470,7 +1467,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "8665310890671560953"
+              "templateHash": "17702853098205349209"
             }
           },
           "parameters": {
@@ -1495,7 +1492,7 @@
             },
             "DeployADTemplateUri": {
               "type": "string",
-              "defaultValue": "https://raw.githubusercontent.com/pthoor/deploy-azure/main/ADDS%20with%20Windows%20Clients/scripts/adDSCConfiguration.ps1",
+              "defaultValue": "https://raw.githubusercontent.com/pthoor/deploy-azure/main/active-directory-with-windows-client/",
               "metadata": {
                 "description": "Location of scripts"
               }
@@ -1611,7 +1608,11 @@
                 "osProfile": {
                   "computerName": "[parameters('adVMName')]",
                   "adminUsername": "[parameters('adminUsername')]",
-                  "adminPassword": "[parameters('adminPassword')]"
+                  "adminPassword": "[parameters('adminPassword')]",
+                  "windowsConfiguration": {
+                    "provisionVMAgent": true,
+                    "enableAutomaticUpdates": false
+                  }
                 },
                 "storageProfile": {
                   "imageReference": {
@@ -1640,28 +1641,18 @@
             {
               "type": "Microsoft.Compute/virtualMachines/extensions",
               "apiVersion": "2022-08-01",
-              "name": "[format('{0}/Microsoft.Powershell.DSC', parameters('adVMName'))]",
+              "name": "[format('{0}/DeployAD', parameters('adVMName'))]",
               "location": "[parameters('location')]",
               "properties": {
-                "publisher": "Microsoft.Powershell",
-                "type": "DSC",
-                "typeHandlerVersion": "2.77",
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.10",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
-                  "ModulesUrl": "https://github.com/pthoor/deploy-azure/raw/main/active-directory-with-windows-client/scripts/adDSCConfiguration.zip",
-                  "ConfigurationFunction": "adDSCConfiguration.ps1\\Deploy-DomainServices",
-                  "Properties": {
-                    "domainFQDN": "[parameters('adDomainName')]",
-                    "adminCredential": {
-                      "UserName": "[parameters('adminUsername')]",
-                      "Password": "PrivateSettingsRef:adminPassword"
-                    }
-                  }
-                },
-                "protectedSettings": {
-                  "Items": {
-                    "adminPassword": "[parameters('adminPassword')]"
-                  }
+                  "fileUris": [
+                    "[uri(parameters('DeployADTemplateUri'), 'scripts/SetupADDS.ps1')]"
+                  ],
+                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName {0} -domainAdminUsername {1} -domainAdminPassword {2} -templateBaseUrl {3}', parameters('adDomainName'), parameters('adminUsername'), parameters('adminPassword'), parameters('DeployADTemplateUri'))]"
                 }
               },
               "dependsOn": [
@@ -1774,9 +1765,6 @@
         },
         "mode": "Incremental",
         "parameters": {
-          "assetLocation": {
-            "value": "[parameters('assetLocation')]"
-          },
           "adfsIP": {
             "value": "[parameters('adfsIP')]"
           },
@@ -1797,9 +1785,6 @@
           },
           "dmzSubnetName": {
             "value": "[variables('dmzSubnetName')]"
-          },
-          "dmzNSGName": {
-            "value": "[variables('dmzNSGName')]"
           },
           "location": {
             "value": "[parameters('location')]"
@@ -1833,14 +1818,10 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "11251218287279188913"
+              "templateHash": "4583703645479661010"
             }
           },
           "parameters": {
-            "dmzNSGName": {
-              "type": "string",
-              "defaultValue": "DMZ-WAP"
-            },
             "adSubnetName": {
               "type": "string",
               "defaultValue": "adSubnet"
@@ -1878,9 +1859,6 @@
               "metadata": {
                 "description": "When deploying the stack N times, define the instance - this will be appended to some resource names to avoid collisions."
               }
-            },
-            "assetLocation": {
-              "type": "string"
             },
             "dmzSubnetName": {
               "type": "string",
@@ -1938,16 +1916,12 @@
             "adfsNetworkArr": "[split(parameters('adfsIP'), '.')]",
             "adfsStartIpNodeAddress": "[int(variables('adfsNetworkArr')[3])]",
             "adfsNetworkString": "[format('{0}.{1}.{2}.', variables('adfsNetworkArr')[0], variables('adfsNetworkArr')[1], variables('adfsNetworkArr')[2])]",
-            "DSCTemplate": "[format('{0}scripts/adfsDSC.zip', parameters('assetLocation'))]",
-            "adfsDSCConfigurationFunction": "adfsDSCConfiguration.ps1\\Main",
             "adfsNICName": "[format('adfs-{0}{1}', parameters('NetworkInterfaceName'), parameters('deploymentNumber'))]",
             "adfsPubIpName": "[format('ADFSPubIP{0}', parameters('deploymentNumber'))]",
             "domainJoinOptions": "3",
             "imageOffer": "WindowsServer",
             "imagePublisher": "MicrosoftWindowsServer",
             "imageSKU": "2012-R2-Datacenter",
-            "vnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
-            "wapDSCConfigurationFunction": "wapDSCConfiguration.ps1\\Main",
             "wapNICName": "[format('wap-{0}{1}', parameters('NetworkInterfaceName'), parameters('deploymentNumber'))]",
             "wapPubIpName": "[format('WAPPubIP{0}', parameters('deploymentNumber'))]"
           },
@@ -1959,7 +1933,7 @@
               },
               "type": "Microsoft.Network/publicIPAddresses",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1}', variables('adfsPubIpName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', variables('adfsPubIpName'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "adfsPubIp"
@@ -1978,7 +1952,7 @@
               },
               "type": "Microsoft.Network/publicIPAddresses",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1}', variables('wapPubIpName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', variables('wapPubIpName'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "wapPubIp"
@@ -1986,7 +1960,7 @@
               "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                  "domainNameLabel": "[toLower(format('{0}{1}', parameters('publicIPAddressDNSName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1)))]"
+                  "domainNameLabel": "[toLower(format('{0}{1}', parameters('publicIPAddressDNSName'), range(0, variables('adfsDeployCount'))[copyIndex()]))]"
                 }
               }
             },
@@ -2005,7 +1979,7 @@
               "properties": {
                 "ipConfigurations": [
                   {
-                    "name": "[format('adfsipconfig{0}{1}', parameters('deploymentNumber'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+                    "name": "[format('adfsipconfig{0}{1}', parameters('deploymentNumber'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
                     "properties": {
                       "privateIPAllocationMethod": "Static",
                       "privateIPAddress": "[format('{0}{1}{2}', variables('adfsNetworkString'), range(0, variables('adfsDeployCount'))[copyIndex()], variables('adfsStartIpNodeAddress'))]",
@@ -2013,7 +1987,7 @@
                         "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('adfsPubIpName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1)))]"
                       },
                       "subnet": {
-                        "id": "[resourceId(format('{0}/subnets/', variables('vnetID')), format('{0}', parameters('adSubnetName')))]"
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets/', parameters('virtualNetworkName'), parameters('adSubnetName'))]"
                       }
                     }
                   }
@@ -2030,7 +2004,7 @@
               },
               "type": "Microsoft.Network/networkInterfaces",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1}', variables('wapNICName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', variables('wapNICName'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "wapNIC"
@@ -2038,14 +2012,14 @@
               "properties": {
                 "ipConfigurations": [
                   {
-                    "name": "[format('wapipconfig{0}-{1}', parameters('deploymentNumber'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+                    "name": "[format('wapipconfig{0}-{1}', parameters('deploymentNumber'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
                     "properties": {
                       "privateIPAllocationMethod": "Dynamic",
                       "publicIPAddress": {
-                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('wapPubIpName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1)))]"
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('wapPubIpName'), range(0, variables('adfsDeployCount'))[copyIndex()]))]"
                       },
                       "subnet": {
-                        "id": "[resourceId(format('{0}/subnets/', variables('vnetID')), format('{0}', parameters('dmzSubnetName')))]"
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets/', parameters('virtualNetworkName'), parameters('dmzSubnetName'))]"
                       }
                     }
                   }
@@ -2062,7 +2036,7 @@
               },
               "type": "Microsoft.Compute/virtualMachines",
               "apiVersion": "2022-08-01",
-              "name": "[format('{0}{1}', parameters('adfsVMName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', parameters('adfsVMName'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "adfsVM"
@@ -2072,7 +2046,7 @@
                   "vmSize": "[parameters('vmSize')]"
                 },
                 "osProfile": {
-                  "computerName": "[format('{0}{1}', parameters('adfsVMName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+                  "computerName": "[format('{0}{1}', parameters('adfsVMName'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
                   "adminUsername": "[parameters('adminUsername')]",
                   "adminPassword": "[parameters('adminPassword')]"
                 },
@@ -2091,7 +2065,7 @@
                 "networkProfile": {
                   "networkInterfaces": [
                     {
-                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('adfsNICName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1)))]"
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('adfsNICName'), range(0, variables('adfsDeployCount'))[copyIndex()]))]"
                     }
                   ]
                 }
@@ -2140,7 +2114,7 @@
               },
               "type": "Microsoft.Compute/virtualMachines",
               "apiVersion": "2022-08-01",
-              "name": "[format('{0}{1}', parameters('wapVMName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', parameters('wapVMName'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "wapVM"
@@ -2150,7 +2124,7 @@
                   "vmSize": "[parameters('vmSize')]"
                 },
                 "osProfile": {
-                  "computerName": "[format('{0}{1}', parameters('wapVMName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+                  "computerName": "[format('{0}{1}', parameters('wapVMName'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
                   "adminUsername": "[parameters('adminUsername')]",
                   "adminPassword": "[parameters('adminPassword')]"
                 },
@@ -2169,7 +2143,7 @@
                 "networkProfile": {
                   "networkInterfaces": [
                     {
-                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('wapNICName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1)))]"
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('wapNICName'), range(0, variables('adfsDeployCount'))[copyIndex()]))]"
                     }
                   ]
                 }

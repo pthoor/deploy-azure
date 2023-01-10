@@ -34,7 +34,6 @@ resource ComputerManagementDsc 'Microsoft.Automation/automationAccounts/modules@
   name: '${automationaccountname}/ComputerManagementDsc'
   dependsOn: [
     AutomationAccount
-    ActiveDirectoryDsc
   ]
   properties: {
     contentLink: {
@@ -48,8 +47,6 @@ resource NetworkingDsc 'Microsoft.Automation/automationAccounts/modules@2022-08-
   name: '${automationaccountname}/NetworkingDsc'
   dependsOn: [
     AutomationAccount
-    ActiveDirectoryDsc
-    ComputerManagementDsc
   ]
   properties: {
     contentLink: {

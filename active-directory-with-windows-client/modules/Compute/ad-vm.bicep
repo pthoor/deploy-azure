@@ -9,7 +9,7 @@ param adminPassword string
 param adminUsername string
 
 @description('Location of scripts')
-param DeployADTemplateUri string = 'https://raw.githubusercontent.com/pthoor/deploy-azure/main/ADDS%20with%20Windows%20Clients/scripts/adDSCConfiguration.ps1'
+param DeployADTemplateUri string = 'https://raw.githubusercontent.com/pthoor/deploy-azure/main/active-directory-with-windows-client/'
 
 @description('When deploying the stack N times, define the instance - this will be appended to some resource names to avoid collisions.')
 param deploymentNumber string = '1'
@@ -86,6 +86,10 @@ resource adVMName_resource 'Microsoft.Compute/virtualMachines@2022-08-01' = {
       computerName: adVMName
       adminUsername: adminUsername
       adminPassword: adminPassword
+      windowsConfiguration: {
+        provisionVMAgent: true
+        enableAutomaticUpdates: false
+      }
     }
     storageProfile: {
       imageReference: {
@@ -109,56 +113,80 @@ resource adVMName_resource 'Microsoft.Compute/virtualMachines@2022-08-01' = {
   }
 }
 
-//resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
-//  name: '${adVMName}/DeployAD'
-//  location: location
-//  tags: {
-//    displayName: 'DeployAD'
-//  }
-//  properties: {
-//    type: 'CustomScriptExtension'
-//    forceUpdateTag: '1.0.1'
-//    typeHandlerVersion: '1.9'
-//    autoUpgradeMinorVersion: true
-//    settings: {
-//      fileUris: [
-//        DeployADTemplateUri
-//      ]
-//      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${DeployADTemplateUri} ${adDomainName} ${adminPassword}'
-//    }
-//  }
-//  dependsOn: [
-//    adVMName_resource
-//  ]
-//}
-
-// Use PowerShell DSC to deploy Active Directory Domain Services on the domain controller
 resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
-  name: '${adVMName}/Microsoft.Powershell.DSC'
+  name: '${adVMName}/DeployAD'
+  location: location
+  properties: {
+    publisher: 'Microsoft.Compute'
+    type: 'CustomScriptExtension'
+    typeHandlerVersion: '1.10'
+    autoUpgradeMinorVersion: true
+    settings: {
+      fileUris: [
+        uri(DeployADTemplateUri, 'scripts/SetupADDS.ps1')
+      ]
+      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File SetupADDS.ps1 -domainName ${adDomainName} -domainAdminUsername ${adminUsername} -domainAdminPassword ${adminPassword} -templateBaseUrl ${DeployADTemplateUri}'
+    }
+  }
   dependsOn: [
     adVMName_resource
   ]
-  location: location
-  properties: {
-    publisher: 'Microsoft.Powershell'
-    type: 'DSC'
-    typeHandlerVersion: '2.77'
-    autoUpgradeMinorVersion: true
-    settings: {
-      ModulesUrl: 'https://github.com/pthoor/deploy-azure/raw/main/active-directory-with-windows-client/scripts/adDSCConfiguration.zip'
-      ConfigurationFunction: 'adDSCConfiguration.ps1\\Deploy-DomainServices'
-      Properties: {
-        domainFQDN: adDomainName
-        adminCredential: {
-          UserName: adminUsername
-          Password: 'PrivateSettingsRef:adminPassword'
-        }
-      }
-    }
-    protectedSettings: {
-      Items: {
-          adminPassword: adminPassword
-      }
-    }
-  }
 }
+
+// Use PowerShell DSC to deploy Active Directory Domain Services on the domain controller
+//resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
+//  name: '${adVMName}/Microsoft.Powershell.DSC'
+//  dependsOn: [
+//    adVMName_resource
+//  ]
+//  location: location
+//  properties: {
+//    publisher: 'Microsoft.Powershell'
+//    type: 'DSC'
+//    typeHandlerVersion: '2.77'
+//    autoUpgradeMinorVersion: true
+//    settings: {
+//      ModulesUrl: 'https://github.com/pthoor/deploy-azure/raw/main/active-directory-with-windows-client/scripts/adDSCConfiguration.zip'
+//      ConfigurationFunction: 'adDSCConfiguration.ps1\\Deploy-DomainServices'
+//      Properties: {
+ //       domainFQDN: adDomainName
+ //       adminCredential: {
+ //         UserName: adminUsername
+ //         Password: 'PrivateSettingsRef:adminPassword'
+ //       }
+ //     }
+ //   }
+ //   protectedSettings: {
+ //     Items: {
+ //         adminPassword: adminPassword
+ //     }
+//    }
+//  }
+//}
+
+//resource guestConfigExtension 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
+//  parent: adVMName_resource
+//  name: 'AzurePolicyforWindows'
+//  location: location
+//  properties: {
+//    publisher: 'Microsoft.GuestConfiguration'
+//    type: 'ConfigurationforWindows'
+//    typeHandlerVersion: '1.0'
+//    autoUpgradeMinorVersion: true
+//    enableAutomaticUpgrade: true
+//  }
+//}
+
+//resource myConfiguration 'Microsoft.GuestConfiguration/guestConfigurationAssignments@2022-01-25' = {
+//  name: 'adDSCConfiguration'
+//  scope: adVMName_resource
+//  location: location
+//  properties: {
+//    guestConfiguration: {
+//      name: 'adDSCConfiguration'
+//      version: '1.0.0'
+//      contentUri: 'https://github.com/pthoor/deploy-azure/raw/main/active-directory-with-windows-client/scripts/adDSCConfiguration.zip'
+//      assignmentType: 'ApplyAndMonitor'
+//    }
+//  }
+//}

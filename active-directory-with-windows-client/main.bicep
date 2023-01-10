@@ -1,5 +1,5 @@
 @description('This is the location in which all the linked templates are stored.')
-param assetLocation string = 'https://raw.githubusercontent.com/pthoor/deploy-azure/main/active-directory-with-windows-client/scripts/'
+param assetLocation string = 'https://raw.githubusercontent.com/pthoor/deploy-azure/main/active-directory-with-windows-client/'
 
 // Key Vault parameters
 @description('Globally unique Vault name must only contain alphanumeric characters and dashes and cannot start with a number.')
@@ -165,11 +165,11 @@ var cliNSGName = 'INT-CLI${deploymentNumber}'
 var cliSubnetName = 'clientSubnet${deploymentNumber}'
 var publicIPAddressDNSName = toLower('${companyNamePrefix}${deploymentNumber}-adfs')
 var wapVMName = toUpper('${companyNamePrefix}${wapVMNameSuffix}')
-var adDSCTemplate = '${assetLocation}scripts/adDSC.zip'
+var adDSCTemplate = '${assetLocation}scripts/adDSCConfiguration.zip'
 var DeployADFSFarmTemplate = 'InstallADFS.ps1'
-var DeployADFSFarmTemplateUri = '${assetLocation}Scripts/InstallADFS.ps1'
+var DeployADFSFarmTemplateUri = '${assetLocation}scripts/InstallADFS.ps1'
 var CopyCertToWAPTemplate = 'CopyCertToWAP.ps1'
-var CopyCertToWAPTemplateUri = '${assetLocation}Scripts/CopyCertToWAP.ps1'
+var CopyCertToWAPTemplateUri = '${assetLocation}scripts/CopyCertToWAP.ps1'
 var adDSCConfigurationFunction = 'adDSCConfiguration.ps1\\DomainController'
 var subnets = [
   {
@@ -200,7 +200,7 @@ var subnets = [
     }
   }
 ]
-var adfsDSCTemplate = '${assetLocation}DSC/adfsDSC.zip'
+var adfsDSCTemplate = '${assetLocation}scripts/adfsDSC.zip'
 var adfsDSCConfigurationFunction = 'adfsDSCConfiguration.ps1\\Main'
 var wapDSCConfigurationFunction = 'wapDSCConfiguration.ps1\\Main'
 var WAPPubIpDnsFQDN = '${publicIPAddressDNSName}{0}.${toLower(replace(location, ' ', ''))}.cloudapp.azure.com'
@@ -340,7 +340,6 @@ resource adVMName_Microsoft_Powershell_DSC 'Microsoft.Compute/virtualMachines/ex
 module adfsVMs 'modules/Compute/adfs-vm.bicep' = {
   name: 'adfsVMs'
   params: {
-    assetLocation: assetLocation
     adfsIP: adfsIP
     adSubnetName: adSubnetName
     adfsVMName: adfsVMName
@@ -348,7 +347,6 @@ module adfsVMs 'modules/Compute/adfs-vm.bicep' = {
     adminPassword: adminPassword
     adminUsername: adminUsername
         dmzSubnetName: dmzSubnetName
-    dmzNSGName: dmzNSGName
     location: location
     NetworkInterfaceName: networkInterfaceName
     publicIPAddressDNSName: publicIPAddressDNSName

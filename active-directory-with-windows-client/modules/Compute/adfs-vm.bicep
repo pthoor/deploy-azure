@@ -1,4 +1,3 @@
-param dmzNSGName string = 'DMZ-WAP'
 param adSubnetName string = 'adSubnet'
 param adfsVMName string = 'AZADFS'
 
@@ -15,7 +14,6 @@ param adminUsername string
 
 @description('When deploying the stack N times, define the instance - this will be appended to some resource names to avoid collisions.')
 param deploymentNumber string = '1'
-param assetLocation string
 param dmzSubnetName string = 'adSubnet'
 
 @metadata({ Description: 'The region to deploy the resources into' })
@@ -45,21 +43,17 @@ var shortDomainName = split(adDomainName, '.')[0]
 var adfsNetworkArr = split(adfsIP, '.')
 var adfsStartIpNodeAddress = int(adfsNetworkArr[3])
 var adfsNetworkString = '${adfsNetworkArr[0]}.${adfsNetworkArr[1]}.${adfsNetworkArr[2]}.'
-var DSCTemplate = '${assetLocation}scripts/adfsDSC.zip'
-var adfsDSCConfigurationFunction = 'adfsDSCConfiguration.ps1\\Main'
 var adfsNICName = 'adfs-${NetworkInterfaceName}${deploymentNumber}'
 var adfsPubIpName = 'ADFSPubIP${deploymentNumber}'
 var domainJoinOptions = '3'
 var imageOffer = 'WindowsServer'
 var imagePublisher = 'MicrosoftWindowsServer'
 var imageSKU = '2012-R2-Datacenter'
-var vnetID = resourceId('Microsoft.Network/virtualNetworks', virtualNetworkName)
-var wapDSCConfigurationFunction = 'wapDSCConfiguration.ps1\\Main'
 var wapNICName = 'wap-${NetworkInterfaceName}${deploymentNumber}'
 var wapPubIpName = 'WAPPubIP${deploymentNumber}'
 
 resource adfsPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for i in range(0, adfsDeployCount): {
-  name: '${adfsPubIpName}${(i + 1)}'
+  name: '${adfsPubIpName}${i}'
   location: location
   tags: {
     displayName: 'adfsPubIp'
@@ -73,7 +67,7 @@ resource adfsPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for
 }]
 
 resource wapPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for i in range(0, adfsDeployCount): {
-  name: '${wapPubIpName}${(i + 1)}'
+  name: '${wapPubIpName}${i}'
   location: location
   tags: {
     displayName: 'wapPubIp'
@@ -81,7 +75,7 @@ resource wapPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for 
   properties: {
     publicIPAllocationMethod: 'Dynamic'
     dnsSettings: {
-      domainNameLabel: toLower('${publicIPAddressDNSName}${(i + 1)}')
+      domainNameLabel: toLower('${publicIPAddressDNSName}${i}')
     }
   }
 }]
@@ -95,7 +89,7 @@ resource adfsNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i
   properties: {
     ipConfigurations: [
       {
-        name: 'adfsipconfig${deploymentNumber}${(i + 1)}'
+        name: 'adfsipconfig${deploymentNumber}${i}'
         properties: {
           privateIPAllocationMethod: 'Static'
           privateIPAddress: '${adfsNetworkString}${i}${adfsStartIpNodeAddress}'
@@ -103,7 +97,7 @@ resource adfsNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i
             id: resourceId('Microsoft.Network/publicIPAddresses', '${adfsPubIpName}${(i + 1)}')
           }
           subnet: {
-            id: resourceId('${vnetID}/subnets/', '${adSubnetName}')
+            id: resourceId('Microsoft.Network/virtualNetworks/subnets/', virtualNetworkName, adSubnetName)
           }
         }
       }
@@ -115,7 +109,7 @@ resource adfsNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i
 }]
 
 resource wapNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in range(0, adfsDeployCount): {
-  name: '${wapNICName}${(i + 1)}'
+  name: '${wapNICName}${i}'
   location: location
   tags: {
     displayName: 'wapNIC'
@@ -123,14 +117,14 @@ resource wapNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i 
   properties: {
     ipConfigurations: [
       {
-        name: 'wapipconfig${deploymentNumber}-${(i + 1)}'
+        name: 'wapipconfig${deploymentNumber}-${i}'
         properties: {
           privateIPAllocationMethod: 'Dynamic'
           publicIPAddress: {
-            id: resourceId('Microsoft.Network/publicIPAddresses', '${wapPubIpName}${(i + 1)}')
+            id: resourceId('Microsoft.Network/publicIPAddresses', '${wapPubIpName}${i}')
           }
           subnet: {
-            id: resourceId('${vnetID}/subnets/', '${dmzSubnetName}')
+            id: resourceId('Microsoft.Network/virtualNetworks/subnets/', virtualNetworkName, dmzSubnetName)
           }
         }
       }
@@ -142,7 +136,7 @@ resource wapNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i 
 }]
 
 resource adfsVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in range(0, adfsDeployCount): {
-  name: '${adfsVMName}${(i + 1)}'
+  name: '${adfsVMName}${i}'
   location: location
   tags: {
     displayName: 'adfsVM'
@@ -152,7 +146,7 @@ resource adfsVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in
       vmSize: vmSize
     }
     osProfile: {
-      computerName: '${adfsVMName}${(i + 1)}'
+      computerName: '${adfsVMName}${i}'
       adminUsername: adminUsername
       adminPassword: adminPassword
     }
@@ -171,7 +165,7 @@ resource adfsVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in
     networkProfile: {
       networkInterfaces: [
         {
-          id: resourceId('Microsoft.Network/networkInterfaces', '${adfsNICName}${(i + 1)}')
+          id: resourceId('Microsoft.Network/networkInterfaces', '${adfsNICName}${i}')
         }
       ]
     }
@@ -210,7 +204,7 @@ resource adfsVMName_1_joindomain 'Microsoft.Compute/virtualMachines/extensions@2
 }]
 
 resource wapVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in range(0, adfsDeployCount): {
-  name: '${wapVMName}${(i + 1)}'
+  name: '${wapVMName}${i}'
   location: location
   tags: {
     displayName: 'wapVM'
@@ -220,7 +214,7 @@ resource wapVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in 
       vmSize: vmSize
     }
     osProfile: {
-      computerName: '${wapVMName}${(i + 1)}'
+      computerName: '${wapVMName}${i}'
       adminUsername: adminUsername
       adminPassword: adminPassword
     }
@@ -239,7 +233,7 @@ resource wapVMName_1 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in 
     networkProfile: {
       networkInterfaces: [
         {
-          id: resourceId('Microsoft.Network/networkInterfaces', '${wapNICName}${(i + 1)}')
+          id: resourceId('Microsoft.Network/networkInterfaces', '${wapNICName}${i}')
         }
       ]
     }
