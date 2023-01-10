@@ -61,7 +61,7 @@ resource adfsPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for
   properties: {
     publicIPAllocationMethod: 'Dynamic'
     dnsSettings: {
-      domainNameLabel: toLower('${adfsVMName}${deploymentNumber}-${(i + 1)}')
+      domainNameLabel: toLower('${adfsVMName}${deploymentNumber}-${i}')
     }
   }
 }]
@@ -94,7 +94,7 @@ resource adfsNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i
           privateIPAllocationMethod: 'Static'
           privateIPAddress: '${adfsNetworkString}${i}${adfsStartIpNodeAddress}'
           publicIPAddress: {
-            id: resourceId('Microsoft.Network/publicIPAddresses', '${adfsPubIpName}${(i + 1)}')
+            id: resourceId('Microsoft.Network/publicIPAddresses', '${adfsPubIpName}${i}')
           }
           subnet: {
             id: resourceId('Microsoft.Network/virtualNetworks/subnets/', virtualNetworkName, adSubnetName)

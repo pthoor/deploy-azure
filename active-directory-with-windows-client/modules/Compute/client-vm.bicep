@@ -23,10 +23,10 @@ var pubIpAddressName = toLower('cliPubIp${resourceGroup().name}${deploymentNumbe
 var nicName = 'nic-${deploymentNumber}-'
 var domainJoinOptions = 3
 var ConfigRDPUsers = 'ConfigRDPUsers.ps1'
-var ConfigRDPUsersUri = '${assetLocation}Scripts/ConfigRDPUsers.ps1'
+var ConfigRDPUsersUri = '${assetLocation}scripts/ConfigRDPUsers.ps1'
 
 resource pubIpAddressName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for i in range(0, clientsToDeploy): {
-  name: '${pubIpAddressName}${(i + 1)}'
+  name: '${pubIpAddressName}${i}'
   location: location
   tags: {
     displayName: 'ClientPubIP'
@@ -35,13 +35,13 @@ resource pubIpAddressName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [
   properties: {
     publicIPAllocationMethod: 'Dynamic'
     dnsSettings: {
-      domainNameLabel: toLower('win${i}-${(i + 1)}-${uniqueString(resourceGroup().id)}')
+      domainNameLabel: toLower('win${i}-${uniqueString(resourceGroup().id)}')
     }
   }
 }]
 
 resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in range(0, clientsToDeploy): {
-  name: '${nicName}${(i + 1)}'
+  name: '${nicName}${i}'
   location: location
   tags: {
     displayName: 'ClientNIC'
@@ -54,7 +54,7 @@ resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in 
         properties: {
           privateIPAllocationMethod: 'Dynamic'
           publicIPAddress: {
-            id: resourceId('Microsoft.Network/publicIPAddresses', '${pubIpAddressName}${(i + 1)})')
+            id: resourceId('Microsoft.Network/publicIPAddresses', '${pubIpAddressName}${i})')
           }
           subnet: {
             id: resourceId('Microsoft.Network/virtualNetworks/subnets/', virtualNetworkName, cliSubnetName)
@@ -69,7 +69,7 @@ resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in 
 }]
 
 resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in range(0, clientsToDeploy): {
-  name: 'cli-Win${i}-${(i + 1)}-${deploymentNumber}'
+  name: 'cli-Win${i}'
   location: location
   tags: {
     displayName: 'ClientVM'
@@ -80,7 +80,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
       vmSize: vmSize
     }
     osProfile: {
-      computerName: 'win${i}-${(i + 1)}'
+      computerName: 'win${i}'
       adminUsername: adminUsername
       adminPassword: adminPassword
       windowsConfiguration: {
@@ -98,7 +98,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
     networkProfile: {
       networkInterfaces: [
         {
-          id: resourceId('Microsoft.Network/networkInterfaces', '${nicName}${(i + 1)}')
+          id: resourceId('Microsoft.Network/networkInterfaces', '${nicName}${i}')
         }
       ]
     }
@@ -109,7 +109,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
 }]
 
 resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, clientsToDeploy): {
-  name: 'cli-Win${i}-${(i + 1)}-${deploymentNumber}/ConfigRDPUsers'
+  name: 'cli-Win${i}/ConfigRDPUsers'
   location: location
   tags: {
     displayName: 'ConfigRDPUsers'
@@ -134,7 +134,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Co
 }]
 
 resource cli_Win_ClientsToDeploy_1_deploymentNumber_joindomain 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, clientsToDeploy): {
-  name: 'cli-Win${i}-${(i + 1)}-${deploymentNumber}/joindomain'
+  name: 'cli-Win${i}/joindomain'
   location: location
   tags: {
     displayName: 'ClientVMJoin'

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "7246423204415344814"
+      "templateHash": "7948327797755728278"
     }
   },
   "parameters": {
@@ -1818,7 +1818,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "4583703645479661010"
+              "templateHash": "8832434175746960787"
             }
           },
           "parameters": {
@@ -1941,7 +1941,7 @@
               "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                  "domainNameLabel": "[toLower(format('{0}{1}-{2}', parameters('adfsVMName'), parameters('deploymentNumber'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1)))]"
+                  "domainNameLabel": "[toLower(format('{0}{1}-{2}', parameters('adfsVMName'), parameters('deploymentNumber'), range(0, variables('adfsDeployCount'))[copyIndex()]))]"
                 }
               }
             },
@@ -1984,7 +1984,7 @@
                       "privateIPAllocationMethod": "Static",
                       "privateIPAddress": "[format('{0}{1}{2}', variables('adfsNetworkString'), range(0, variables('adfsDeployCount'))[copyIndex()], variables('adfsStartIpNodeAddress'))]",
                       "publicIPAddress": {
-                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('adfsPubIpName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1)))]"
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('adfsPubIpName'), range(0, variables('adfsDeployCount'))[copyIndex()]))]"
                       },
                       "subnet": {
                         "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets/', parameters('virtualNetworkName'), parameters('adSubnetName'))]"
