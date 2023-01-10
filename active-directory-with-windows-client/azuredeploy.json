@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "7948327797755728278"
+      "templateHash": "6883518970465611796"
     }
   },
   "parameters": {
@@ -2207,7 +2207,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "6805426636290185999"
+              "templateHash": "4556610435328174600"
             }
           },
           "parameters": {
@@ -2266,7 +2266,7 @@
             "nicName": "[format('nic-{0}-', parameters('deploymentNumber'))]",
             "domainJoinOptions": 3,
             "ConfigRDPUsers": "ConfigRDPUsers.ps1",
-            "ConfigRDPUsersUri": "[format('{0}Scripts/ConfigRDPUsers.ps1', parameters('assetLocation'))]"
+            "ConfigRDPUsersUri": "[format('{0}scripts/ConfigRDPUsers.ps1', parameters('assetLocation'))]"
           },
           "resources": [
             {
@@ -2276,7 +2276,7 @@
               },
               "type": "Microsoft.Network/publicIPAddresses",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1}', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', variables('pubIpAddressName'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientPubIP",
@@ -2285,7 +2285,7 @@
               "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                  "domainNameLabel": "[toLower(format('win{0}-{1}-{2}', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), uniqueString(resourceGroup().id)))]"
+                  "domainNameLabel": "[toLower(format('win{0}-{1}', range(0, parameters('clientsToDeploy'))[copyIndex()], uniqueString(resourceGroup().id)))]"
                 }
               }
             },
@@ -2296,7 +2296,7 @@
               },
               "type": "Microsoft.Network/networkInterfaces",
               "apiVersion": "2022-07-01",
-              "name": "[format('{0}{1}', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
+              "name": "[format('{0}{1}', variables('nicName'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientNIC",
@@ -2309,7 +2309,7 @@
                     "properties": {
                       "privateIPAllocationMethod": "Dynamic",
                       "publicIPAddress": {
-                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1})', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1)))]"
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1})', variables('pubIpAddressName'), range(0, parameters('clientsToDeploy'))[copyIndex()]))]"
                       },
                       "subnet": {
                         "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets/', parameters('virtualNetworkName'), parameters('cliSubnetName'))]"
@@ -2319,7 +2319,7 @@
                 ]
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('pubIpAddressName'), add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1)))]"
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('pubIpAddressName'), range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]]))]"
               ]
             },
             {
@@ -2329,7 +2329,7 @@
               },
               "type": "Microsoft.Compute/virtualMachines",
               "apiVersion": "2022-08-01",
-              "name": "[format('cli-Win{0}-{1}-{2}', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), parameters('deploymentNumber'))]",
+              "name": "[format('cli-Win{0}', range(0, parameters('clientsToDeploy'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientVM",
@@ -2340,7 +2340,7 @@
                   "vmSize": "[parameters('vmSize')]"
                 },
                 "osProfile": {
-                  "computerName": "[format('win{0}-{1}', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1))]",
+                  "computerName": "[format('win{0}', range(0, parameters('clientsToDeploy'))[copyIndex()])]",
                   "adminUsername": "[parameters('adminUsername')]",
                   "adminPassword": "[parameters('adminPassword')]",
                   "windowsConfiguration": {
@@ -2358,13 +2358,13 @@
                 "networkProfile": {
                   "networkInterfaces": [
                     {
-                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1)))]"
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('nicName'), range(0, parameters('clientsToDeploy'))[copyIndex()]))]"
                     }
                   ]
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('nicName'), add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1)))]"
+                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('nicName'), range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]]))]"
               ]
             },
             {
@@ -2374,7 +2374,7 @@
               },
               "type": "Microsoft.Compute/virtualMachines/extensions",
               "apiVersion": "2022-08-01",
-              "name": "[format('cli-Win{0}-{1}-{2}/ConfigRDPUsers', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), parameters('deploymentNumber'))]",
+              "name": "[format('cli-Win{0}/ConfigRDPUsers', range(0, parameters('clientsToDeploy'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ConfigRDPUsers",
@@ -2394,7 +2394,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', format('cli-Win{0}-{1}-{2}', range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1), parameters('deploymentNumber')))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', format('cli-Win{0}', range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]]))]"
               ]
             },
             {
@@ -2404,7 +2404,7 @@
               },
               "type": "Microsoft.Compute/virtualMachines/extensions",
               "apiVersion": "2022-08-01",
-              "name": "[format('cli-Win{0}-{1}-{2}/joindomain', range(0, parameters('clientsToDeploy'))[copyIndex()], add(range(0, parameters('clientsToDeploy'))[copyIndex()], 1), parameters('deploymentNumber'))]",
+              "name": "[format('cli-Win{0}/joindomain', range(0, parameters('clientsToDeploy'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientVMJoin",
@@ -2427,7 +2427,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', format('cli-Win{0}-{1}-{2}', range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], add(range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]], 1), parameters('deploymentNumber')))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', format('cli-Win{0}', range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]]))]"
               ]
             }
           ]
