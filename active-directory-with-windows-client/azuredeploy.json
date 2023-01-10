@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "49654077818672481"
+      "templateHash": "462883165158774373"
     }
   },
   "parameters": {
@@ -653,7 +653,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "3816653755612440533"
+              "templateHash": "6013333286814747110"
             }
           },
           "parameters": {
@@ -728,7 +728,10 @@
                 "addressPrefix": "[parameters('addressPrefix')]",
                 "privateEndpointNetworkPolicies": "Disabled",
                 "privateLinkServiceNetworkPolicies": "Disabled"
-              }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+              ]
             },
             {
               "type": "Microsoft.Network/publicIPAddresses",
@@ -764,7 +767,8 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks/subnets', split(format('{0}/{1}', parameters('virtualNetworkName'), variables('subnetName')), '/')[0], split(format('{0}/{1}', parameters('virtualNetworkName'), variables('subnetName')), '/')[1])]",
-                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
               ]
             }
           ],

@@ -43,6 +43,9 @@ resource bastionSubnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' = 
     privateEndpointNetworkPolicies: 'Disabled'
     privateLinkServiceNetworkPolicies: 'Disabled'
   }
+  dependsOn: [
+    virtualNetworkName_resource
+  ]
 }
 
 resource publicIpAddressForBastion 'Microsoft.Network/publicIPAddresses@2022-01-01' = {
@@ -74,6 +77,9 @@ resource bastionHost 'Microsoft.Network/bastionHosts@2022-01-01' = {
       }
     ]
   }
+  dependsOn: [
+    virtualNetworkName_resource
+  ]
 }
 
 output bastionId string = bastionHost.id
