@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "11437486683707911205"
+      "templateHash": "2664395038339895206"
     }
   },
   "parameters": {
@@ -315,7 +315,7 @@
       },
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "apiVersion": "2022-08-01",
-      "name": "[format('{0}{1}/CopyCertToWAP', variables('wapVMName'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1))]",
+      "name": "[format('{0}{1}/CopyCertToWAP', variables('wapVMName'), range(0, variables('adfsDeployCount'))[copyIndex()])]",
       "location": "[parameters('location')]",
       "tags": {
         "displayName": "ConfigureWAP"
@@ -329,11 +329,12 @@
           "fileUris": [
             "[variables('CopyCertToWAPTemplateUri')]"
           ],
-          "commandToExecute": "[format('powershell -ExecutionPolicy Unrestricted -File {0} -DCFQDN {1}.{2} -adminuser {3} -password {4} -instance {5} -WapFqdn {6}', variables('CopyCertToWAPTemplate'), variables('adVMName'), parameters('adDomainName'), parameters('adminUsername'), parameters('adminPassword'), add(range(0, variables('adfsDeployCount'))[copyIndex()], 1), variables('WAPPubIpDnsFQDN'))]"
+          "commandToExecute": "[format('powershell -ExecutionPolicy Unrestricted -File {0} -DCFQDN {1}.{2} -adminuser {3} -password {4} -instance {5} -WapFqdn {6}', variables('CopyCertToWAPTemplate'), variables('adVMName'), parameters('adDomainName'), parameters('adminUsername'), parameters('adminPassword'), range(0, variables('adfsDeployCount'))[copyIndex()], variables('WAPPubIpDnsFQDN'))]"
         }
       },
       "dependsOn": [
-        "adfsVMName_1_InstallADFS"
+        "adfsVMName_1_InstallADFS",
+        "[resourceId('Microsoft.Resources/deployments', 'adfsVMs')]"
       ]
     },
     {
@@ -2092,7 +2093,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "14742187204009391843"
+              "templateHash": "4145793846472064650"
             }
           },
           "parameters": {
@@ -2147,8 +2148,8 @@
           },
           "variables": {
             "shortDomainName": "[split(parameters('adDomainName'), '.')[0]]",
-            "pubIpAddressName": "[toLower(format('cliPubIp{0}{1}', resourceGroup().name, parameters('deploymentNumber')))]",
-            "nicName": "[format('nic-{0}-', parameters('deploymentNumber'))]",
+            "pubIpAddressName": "[toLower(format('cliPubIp{0}', parameters('deploymentNumber')))]",
+            "nicName": "[format('clinic-{0}-', parameters('deploymentNumber'))]",
             "domainJoinOptions": 3,
             "ConfigRDPUsers": "ConfigRDPUsers.ps1",
             "ConfigRDPUsersUri": "[format('{0}scripts/ConfigRDPUsers.ps1', parameters('assetLocation'))]"
@@ -2190,7 +2191,7 @@
               "properties": {
                 "ipConfigurations": [
                   {
-                    "name": "ipconfig1",
+                    "name": "[format('cli-ipconfig1{0}{1}', parameters('deploymentNumber'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
                     "properties": {
                       "privateIPAllocationMethod": "Dynamic",
                       "publicIPAddress": {

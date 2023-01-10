@@ -319,7 +319,7 @@ resource adfsVMName_1_InstallADFS 'Microsoft.Compute/virtualMachines/extensions@
 }]
 
 resource wapVMName_1_CopyCertToWAP 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, adfsDeployCount): {
-  name: '${wapVMName}${(i + 1)}/CopyCertToWAP'
+  name: '${wapVMName}${i}/CopyCertToWAP'
   location: location
   tags: {
     displayName: 'ConfigureWAP'
@@ -333,10 +333,11 @@ resource wapVMName_1_CopyCertToWAP 'Microsoft.Compute/virtualMachines/extensions
       fileUris: [
         CopyCertToWAPTemplateUri
       ]
-      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${CopyCertToWAPTemplate} -DCFQDN ${adVMName}.${adDomainName} -adminuser ${adminUsername} -password ${adminPassword} -instance ${(i + 1)} -WapFqdn ${WAPPubIpDnsFQDN}'
+      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ${CopyCertToWAPTemplate} -DCFQDN ${adVMName}.${adDomainName} -adminuser ${adminUsername} -password ${adminPassword} -instance ${i} -WapFqdn ${WAPPubIpDnsFQDN}'
     }
   }
   dependsOn: [
+    adfsVMs
     adfsVMName_1_InstallADFS
   ]
 }]

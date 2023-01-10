@@ -19,8 +19,8 @@ param assetLocation string
 param location string = resourceGroup().location
 
 var shortDomainName = split(adDomainName, '.')[0]
-var pubIpAddressName = toLower('cliPubIp${resourceGroup().name}${deploymentNumber}')
-var nicName = 'nic-${deploymentNumber}-'
+var pubIpAddressName = toLower('cliPubIp${deploymentNumber}')
+var nicName = 'clinic-${deploymentNumber}-'
 var domainJoinOptions = 3
 var ConfigRDPUsers = 'ConfigRDPUsers.ps1'
 var ConfigRDPUsersUri = '${assetLocation}scripts/ConfigRDPUsers.ps1'
@@ -50,7 +50,7 @@ resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in 
   properties: {
     ipConfigurations: [
       {
-        name: 'ipconfig1'
+        name: 'cli-ipconfig1${deploymentNumber}${i}'
         properties: {
           privateIPAllocationMethod: 'Dynamic'
           publicIPAddress: {
