@@ -131,7 +131,7 @@ param dmzSubnetAddressRange string = '10.0.2.0/24'
 param cliSubnetAddressRange string = '10.0.3.0/24'
 
 @description('The address range of the desired subnet for Azure Bastion.')
-param bastionSubnetAddressRange string = '10.0.4.0/27'
+param bastionSubnetAddressRange string = '10.0.4.0/26'
 
 @description('ClientsToDeploy, possible values: 1-9.')
 @allowed([
@@ -156,6 +156,7 @@ var networkInterfaceName = 'NIC'
 var addcVMNameSuffix = 'dc'
 var adfsVMNameSuffix = 'fs'
 var wapVMNameSuffix = 'px'
+var cliVMNameSuffix = 'cli'
 var companyNamePrefix = split(adDomainName, '.')[0]
 var adfsVMName = toUpper('${companyNamePrefix}${adfsVMNameSuffix}')
 var adVMName = toUpper('${companyNamePrefix}${addcVMNameSuffix}')
@@ -166,6 +167,7 @@ var bastionSubnetName = 'AzureBastionSubnet'
 var bastionNSGName = 'bastionNSG'
 var dmzNSGName = 'DMZ-WAP${deploymentNumber}'
 var dmzSubnetName = 'dmzSubnet${deploymentNumber}'
+var cliVMName = toUpper('${companyNamePrefix}${cliVMNameSuffix}')
 var cliNSGName = 'INT-CLI${deploymentNumber}'
 var cliSubnetName = 'clientSubnet${deploymentNumber}'
 var publicIPAddressDNSName = toLower('${companyNamePrefix}${deploymentNumber}-adfs')
@@ -234,6 +236,7 @@ module virtualNetwork 'modules/Networking/vnet.bicep' = {
     virtualNetworkName: virtualNetworkName
     subnets: subnets
     virtualNetworkAddressRange: virtualNetworkAddressRange
+    bastionSubnetAddressRange: bastionSubnetAddressRange
   }
   dependsOn: [
     NSGs
@@ -356,10 +359,11 @@ resource wapVMName_1_CopyCertToWAP 'Microsoft.Compute/virtualMachines/extensions
   ]
 }]
 
-module clientVMs 'modules/Compute/client-vm.bicep' = {
-  name: 'clientVMs'
+module clientVMs 'modules/Compute/client-vm.bicep' = [for i in range(0, clientsToDeploy): {
+  name: '${cliVMName}${i}'
   params: {
     location: location
+    cliVMName: cliVMName
     adminPassword: adminPassword
     adminUsername: adminUsername
     deploymentNumber: deploymentNumber
@@ -373,7 +377,7 @@ module clientVMs 'modules/Compute/client-vm.bicep' = {
   dependsOn: [
     virtualNetworkDNSUpdate
   ]
-}
+}]
 
 // Deploy the Microsoft Sentinel instance
 module workspace 'modules/sentinel.bicep' = {
@@ -460,18 +464,19 @@ resource domainControllerAssociation 'Microsoft.Insights/dataCollectionRuleAssoc
 }
 
 // Create a data collection rule association for the workstation
-resource workstationVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing = {
-  name: clientVMs.name
-}
+resource workstationVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing = [for i in range(0, clientsToDeploy): {
+  name: '${cliVMName}${i}'
+}]
 
-resource workstationAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = {
+resource workstationAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = [for i in range(0, clientsToDeploy): {
   name: '${'clientVMs'}-dcra'
   dependsOn: [
     workspace
     clientVMs
+    workstationVm
   ]
-  scope: workstationVm
+  scope: workstationVm[i]
   properties: {
     dataCollectionRuleId: dcr.id
   }
-}
+}]

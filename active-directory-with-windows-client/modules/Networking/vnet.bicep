@@ -25,7 +25,7 @@ resource virtualNetworkName_resource 'Microsoft.Network/virtualNetworks@2022-07-
 
 // Creates an Azure Bastion Subnet and host in the specified virtual network
 @description('The address prefix to use for the Bastion subnet')
-param addressPrefix string = '192.168.250.0/27'
+param bastionSubnetAddressRange string
 
 @description('The name of the Bastion public IP address')
 param publicIpName string = 'pip-bastion'
@@ -39,7 +39,7 @@ var subnetName = 'AzureBastionSubnet'
 resource bastionSubnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' = {
   name: '${virtualNetworkName}/${subnetName}'
   properties: {
-    addressPrefix: addressPrefix
+    addressPrefix: bastionSubnetAddressRange
     privateEndpointNetworkPolicies: 'Disabled'
     privateLinkServiceNetworkPolicies: 'Disabled'
   }
@@ -52,7 +52,7 @@ resource publicIpAddressForBastion 'Microsoft.Network/publicIPAddresses@2022-01-
   name: publicIpName
   location: location
   sku: {
-    name: 'Basic'
+    name: 'Standard'
   }
   properties: {
     publicIPAllocationMethod: 'Static'
@@ -62,6 +62,9 @@ resource publicIpAddressForBastion 'Microsoft.Network/publicIPAddresses@2022-01-
 resource bastionHost 'Microsoft.Network/bastionHosts@2022-01-01' = {
   name: bastionHostName
   location: location
+  sku: {
+    name: 'Basic'
+  }
   properties: {
     ipConfigurations: [
       {

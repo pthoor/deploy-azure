@@ -5,6 +5,8 @@ param adminPassword string
 @description('Admin username')
 param adminUsername string
 
+param cliVMName string = 'cli-Win'
+
 @description('When deploying the stack N times, define the instance - this will be appended to some resource names to avoid collisions.')
 param deploymentNumber string = '1'
 param virtualNetworkName string = 'vnet'
@@ -69,7 +71,7 @@ resource nicName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i in 
 }]
 
 resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMachines@2022-08-01' = [for i in range(0, clientsToDeploy): {
-  name: 'cli-Win${i}'
+  name: '${cliVMName}${i}'
   location: location
   tags: {
     displayName: 'ClientVM'
@@ -80,7 +82,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
       vmSize: vmSize
     }
     osProfile: {
-      computerName: 'win${i}'
+      computerName: '${cliVMName}${i}'
       adminUsername: adminUsername
       adminPassword: adminPassword
       windowsConfiguration: {
@@ -109,7 +111,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber 'Microsoft.Compute/virtualMa
 }]
 
 resource cli_Win_ClientsToDeploy_1_deploymentNumber_joindomain 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, clientsToDeploy): {
-  name: 'cli-Win${i}/joindomain'
+  name: '${cliVMName}${i}/joindomain'
   location: location
   tags: {
     displayName: 'ClientVMJoin'
@@ -137,7 +139,7 @@ resource cli_Win_ClientsToDeploy_1_deploymentNumber_joindomain 'Microsoft.Comput
 }]
 
 resource cli_Win_ClientsToDeploy_1_deploymentNumber_ConfigRDPUsers 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = [for i in range(0, clientsToDeploy): {
-  name: 'cli-Win${i}/ConfigRDPUsers'
+  name: '${cliVMName}${i}/ConfigRDPUsers'
   location: location
   tags: {
     displayName: 'ConfigRDPUsers'

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "462883165158774373"
+      "templateHash": "11025766657339006542"
     }
   },
   "parameters": {
@@ -198,7 +198,7 @@
     },
     "bastionSubnetAddressRange": {
       "type": "string",
-      "defaultValue": "10.0.4.0/27",
+      "defaultValue": "10.0.4.0/26",
       "metadata": {
         "description": "The address range of the desired subnet for Azure Bastion."
       }
@@ -234,6 +234,7 @@
     "addcVMNameSuffix": "dc",
     "adfsVMNameSuffix": "fs",
     "wapVMNameSuffix": "px",
+    "cliVMNameSuffix": "cli",
     "companyNamePrefix": "[split(parameters('adDomainName'), '.')[0]]",
     "adfsVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('adfsVMNameSuffix')))]",
     "adVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('addcVMNameSuffix')))]",
@@ -244,6 +245,7 @@
     "bastionNSGName": "bastionNSG",
     "dmzNSGName": "[format('DMZ-WAP{0}', parameters('deploymentNumber'))]",
     "dmzSubnetName": "[format('dmzSubnet{0}', parameters('deploymentNumber'))]",
+    "cliVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('cliVMNameSuffix')))]",
     "cliNSGName": "[format('INT-CLI{0}', parameters('deploymentNumber'))]",
     "cliSubnetName": "[format('clientSubnet{0}', parameters('deploymentNumber'))]",
     "publicIPAddressDNSName": "[toLower(format('{0}{1}-adfs', variables('companyNamePrefix'), parameters('deploymentNumber')))]",
@@ -428,15 +430,19 @@
       ]
     },
     {
+      "copy": {
+        "name": "workstationAssociation",
+        "count": "[length(range(0, parameters('clientsToDeploy')))]"
+      },
       "type": "Microsoft.Insights/dataCollectionRuleAssociations",
       "apiVersion": "2021-04-01",
-      "scope": "[format('Microsoft.Compute/virtualMachines/{0}', 'clientVMs')]",
+      "scope": "[format('Microsoft.Compute/virtualMachines/{0}', format('{0}{1}', variables('cliVMName'), range(0, parameters('clientsToDeploy'))[range(0, parameters('clientsToDeploy'))[copyIndex()]]))]",
       "name": "[format('{0}-dcra', 'clientVMs')]",
       "properties": {
         "dataCollectionRuleId": "[resourceId('Microsoft.Insights/dataCollectionRules', 'DCR')]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'clientVMs')]",
+        "clientVMs",
         "[resourceId('Microsoft.Insights/dataCollectionRules', 'DCR')]",
         "[resourceId('Microsoft.Resources/deployments', 'microsoftSentinel')]"
       ]
@@ -644,6 +650,9 @@
           },
           "virtualNetworkAddressRange": {
             "value": "[parameters('virtualNetworkAddressRange')]"
+          },
+          "bastionSubnetAddressRange": {
+            "value": "[parameters('bastionSubnetAddressRange')]"
           }
         },
         "template": {
@@ -653,7 +662,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "6013333286814747110"
+              "templateHash": "17000644638101888743"
             }
           },
           "parameters": {
@@ -677,9 +686,8 @@
               "type": "string",
               "defaultValue": "[resourceGroup().location]"
             },
-            "addressPrefix": {
+            "bastionSubnetAddressRange": {
               "type": "string",
-              "defaultValue": "192.168.250.0/27",
               "metadata": {
                 "description": "The address prefix to use for the Bastion subnet"
               }
@@ -725,7 +733,7 @@
               "apiVersion": "2022-01-01",
               "name": "[format('{0}/{1}', parameters('virtualNetworkName'), variables('subnetName'))]",
               "properties": {
-                "addressPrefix": "[parameters('addressPrefix')]",
+                "addressPrefix": "[parameters('bastionSubnetAddressRange')]",
                 "privateEndpointNetworkPolicies": "Disabled",
                 "privateLinkServiceNetworkPolicies": "Disabled"
               },
@@ -739,7 +747,7 @@
               "name": "[parameters('publicIpName')]",
               "location": "[parameters('location')]",
               "sku": {
-                "name": "Basic"
+                "name": "Standard"
               },
               "properties": {
                 "publicIPAllocationMethod": "Static"
@@ -750,6 +758,9 @@
               "apiVersion": "2022-01-01",
               "name": "[parameters('bastionHostName')]",
               "location": "[parameters('location')]",
+              "sku": {
+                "name": "Basic"
+              },
               "properties": {
                 "ipConfigurations": [
                   {
@@ -1576,7 +1587,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "790693349522393381"
+              "templateHash": "1099967097157900593"
             }
           },
           "parameters": {
@@ -1789,6 +1800,29 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('adVMName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines/extensions",
+              "apiVersion": "2022-08-01",
+              "name": "[format('{0}/DeployUsersComputers', parameters('adVMName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.10",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                  "fileUris": [
+                    "[uri(parameters('DeployADTemplateUri'), 'scripts/PopulateAD.ps1')]"
+                  ],
+                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File PopulateAD.ps1; Invoke-LoadADObjects -DomainName {0} -LimitUsers 100', parameters('adDomainName'))]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines/extensions', split(format('{0}/DeployAD', parameters('adVMName')), '/')[0], split(format('{0}/DeployAD', parameters('adVMName')), '/')[1])]",
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('adVMName'))]",
+                "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('adVMName'), 'AzurePolicyforWindows')]"
               ]
             }
           ]
@@ -2292,9 +2326,13 @@
       ]
     },
     {
+      "copy": {
+        "name": "clientVMs",
+        "count": "[length(range(0, parameters('clientsToDeploy')))]"
+      },
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "clientVMs",
+      "name": "[format('{0}{1}', variables('cliVMName'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -2303,6 +2341,9 @@
         "parameters": {
           "location": {
             "value": "[parameters('location')]"
+          },
+          "cliVMName": {
+            "value": "[variables('cliVMName')]"
           },
           "adminPassword": {
             "value": "[parameters('adminPassword')]"
@@ -2339,7 +2380,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "4917711845551887108"
+              "templateHash": "17587550025277254633"
             }
           },
           "parameters": {
@@ -2354,6 +2395,10 @@
               "metadata": {
                 "description": "Admin username"
               }
+            },
+            "cliVMName": {
+              "type": "string",
+              "defaultValue": "cli-Win"
             },
             "deploymentNumber": {
               "type": "string",
@@ -2461,7 +2506,7 @@
               },
               "type": "Microsoft.Compute/virtualMachines",
               "apiVersion": "2022-08-01",
-              "name": "[format('cli-Win{0}', range(0, parameters('clientsToDeploy'))[copyIndex()])]",
+              "name": "[format('{0}{1}', parameters('cliVMName'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientVM",
@@ -2472,7 +2517,7 @@
                   "vmSize": "[parameters('vmSize')]"
                 },
                 "osProfile": {
-                  "computerName": "[format('win{0}', range(0, parameters('clientsToDeploy'))[copyIndex()])]",
+                  "computerName": "[format('{0}{1}', parameters('cliVMName'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
                   "adminUsername": "[parameters('adminUsername')]",
                   "adminPassword": "[parameters('adminPassword')]",
                   "windowsConfiguration": {
@@ -2506,7 +2551,7 @@
               },
               "type": "Microsoft.Compute/virtualMachines/extensions",
               "apiVersion": "2022-08-01",
-              "name": "[format('cli-Win{0}/joindomain', range(0, parameters('clientsToDeploy'))[copyIndex()])]",
+              "name": "[format('{0}{1}/joindomain', parameters('cliVMName'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ClientVMJoin",
@@ -2539,7 +2584,7 @@
               },
               "type": "Microsoft.Compute/virtualMachines/extensions",
               "apiVersion": "2022-08-01",
-              "name": "[format('cli-Win{0}/ConfigRDPUsers', range(0, parameters('clientsToDeploy'))[copyIndex()])]",
+              "name": "[format('{0}{1}/ConfigRDPUsers', parameters('cliVMName'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
               "location": "[parameters('location')]",
               "tags": {
                 "displayName": "ConfigRDPUsers",
@@ -2602,7 +2647,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.13.1.58284",
-              "templateHash": "13033453694542876346"
+              "templateHash": "17055936360184914607"
             }
           },
           "parameters": {
@@ -2649,8 +2694,7 @@
               "plan": {
                 "name": "[format('SecurityInsights({0})', parameters('logAnalyticsWorkspaceName'))]",
                 "product": "OMSGallery/SecurityInsights",
-                "publisher": "Microsoft",
-                "promotionCode": ""
+                "publisher": "Microsoft"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"
