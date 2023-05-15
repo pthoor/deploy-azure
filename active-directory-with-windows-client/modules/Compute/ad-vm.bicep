@@ -124,9 +124,9 @@ resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08
   name: '${adVMName}/DeployAD'
   location: location
   properties: {
-    publisher: 'Microsoft.Compute'
-    type: 'CustomScriptExtension'
-    typeHandlerVersion: '1.10'
+    publisher: 'Microsoft.Azure.Extensions'
+    type: 'CustomScript'
+    typeHandlerVersion: '2.0'
     autoUpgradeMinorVersion: true
     settings: {
       fileUris: [
