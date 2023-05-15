@@ -133,6 +133,9 @@ param cliSubnetAddressRange string = '10.0.3.0/24'
 @description('The address range of the desired subnet for Azure Bastion.')
 param bastionSubnetAddressRange string = '10.0.4.0/26'
 
+@description('The address range of the desired subnet for servers.')
+param srvSubnetAddressRange string = '10.0.5.0/26'
+
 @description('ClientsToDeploy, possible values: 1-9.')
 @allowed([
   1
@@ -147,6 +150,20 @@ param bastionSubnetAddressRange string = '10.0.4.0/26'
 ])
 param clientsToDeploy int = 1
 
+@description('srvToDeploy, possible values: 1-9.')
+@allowed([
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+])
+param srvToDeploy int = 1
+
 param location string = resourceGroup().location
 
 var automationaccountname = 'aa${uniqueString(resourceGroup().id)}'
@@ -157,6 +174,7 @@ var addcVMNameSuffix = 'dc'
 var adfsVMNameSuffix = 'fs'
 var wapVMNameSuffix = 'px'
 var cliVMNameSuffix = 'cli'
+var srvVMNameSuffix = 'srv'
 var companyNamePrefix = split(adDomainName, '.')[0]
 var adfsVMName = toUpper('${companyNamePrefix}${adfsVMNameSuffix}')
 var adVMName = toUpper('${companyNamePrefix}${addcVMNameSuffix}')
@@ -170,6 +188,9 @@ var dmzSubnetName = 'dmzSubnet${deploymentNumber}'
 var cliVMName = toUpper('${companyNamePrefix}${cliVMNameSuffix}')
 var cliNSGName = 'INT-CLI${deploymentNumber}'
 var cliSubnetName = 'clientSubnet${deploymentNumber}'
+var srvVMName = toUpper('${companyNamePrefix}${srvVMNameSuffix}')
+var srvNSGName = 'INT-CLI${deploymentNumber}'
+var srvSubnetName = 'srvSubnet${deploymentNumber}'
 var publicIPAddressDNSName = toLower('${companyNamePrefix}${deploymentNumber}-adfs')
 var wapVMName = toUpper('${companyNamePrefix}${wapVMNameSuffix}')
 var adDSCTemplate = '${assetLocation}scripts/adDSCConfiguration.zip'
@@ -203,6 +224,15 @@ var subnets = [
       addressprefix: dmzSubnetAddressRange
       networkSecurityGroup: {
         id: resourceId('Microsoft.Network/networkSecurityGroups', dmzNSGName)
+      }
+    }
+  }
+  {
+    name: srvSubnetName
+    properties: {
+      addressprefix: srvSubnetAddressRange
+      networkSecurityGroup: {
+        id: resourceId('Microsoft.Network/networkSecurityGroups', srvNSGName)
       }
     }
   }
@@ -379,6 +409,26 @@ module clientVMs 'modules/Compute/client-vm.bicep' = [for i in range(0, clientsT
   ]
 }]
 
+module srvVMs 'modules/Compute/srv-vm.bicep' = [for i in range(0, srvToDeploy): {
+  name: '${srvVMName}${i}'
+  params: {
+    location: location
+    srvVMName: srvVMName
+    adminPassword: adminPassword
+    adminUsername: adminUsername
+    deploymentNumber: deploymentNumber
+    virtualNetworkName: virtualNetworkName
+    srvSubnetName: srvSubnetName
+    adDomainName: adDomainName
+    srvToDeploy: srvToDeploy
+    vmSize: vmSize
+    assetLocation: assetLocation
+  }
+  dependsOn: [
+    virtualNetworkDNSUpdate
+  ]
+}]
+
 // Deploy the Microsoft Sentinel instance
 module workspace 'modules/sentinel.bicep' = {
   name: 'microsoftSentinel'
@@ -476,6 +526,24 @@ resource workstationAssociation 'Microsoft.Insights/dataCollectionRuleAssociatio
     workstationVm
   ]
   scope: workstationVm[i]
+  properties: {
+    dataCollectionRuleId: dcr.id
+  }
+}]
+
+// Create a data collection rule association for the servers
+resource serverVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing = [for i in range(0, srvToDeploy): {
+  name: '${srvVMName}${i}'
+}]
+
+resource srvAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = [for i in range(0, srvToDeploy): {
+  name: '${'srvVMs'}-dcra'
+  dependsOn: [
+    workspace
+    srvVMs
+    serverVm
+  ]
+  scope: serverVm[i]
   properties: {
     dataCollectionRuleId: dcr.id
   }

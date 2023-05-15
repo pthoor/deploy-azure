@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.13.1.58284",
-      "templateHash": "11025766657339006542"
+      "version": "0.17.1.54307",
+      "templateHash": "4447139417680087378"
     }
   },
   "parameters": {
@@ -72,7 +72,7 @@
       }
     },
     "adminPassword": {
-      "type": "secureString",
+      "type": "securestring",
       "metadata": {
         "description": "Password for the local administrator account. Cannot be \"P@ssw0rd\" and possibly other such common passwords. Must be 8 characters long and three of the following complexity requirements: uppercase, lowercase, number, special character"
       }
@@ -113,7 +113,7 @@
       }
     },
     "defaultUserPassword": {
-      "type": "secureString",
+      "type": "securestring",
       "metadata": {
         "description": "Enter the password that will be applied to each user account to be created in AD."
       }
@@ -203,6 +203,13 @@
         "description": "The address range of the desired subnet for Azure Bastion."
       }
     },
+    "srvSubnetAddressRange": {
+      "type": "string",
+      "defaultValue": "10.0.5.0/26",
+      "metadata": {
+        "description": "The address range of the desired subnet for servers."
+      }
+    },
     "clientsToDeploy": {
       "type": "int",
       "defaultValue": 1,
@@ -221,6 +228,24 @@
         "description": "ClientsToDeploy, possible values: 1-9."
       }
     },
+    "srvToDeploy": {
+      "type": "int",
+      "defaultValue": 1,
+      "allowedValues": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "metadata": {
+        "description": "srvToDeploy, possible values: 1-9."
+      }
+    },
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]"
@@ -235,6 +260,7 @@
     "adfsVMNameSuffix": "fs",
     "wapVMNameSuffix": "px",
     "cliVMNameSuffix": "cli",
+    "srvVMNameSuffix": "srv",
     "companyNamePrefix": "[split(parameters('adDomainName'), '.')[0]]",
     "adfsVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('adfsVMNameSuffix')))]",
     "adVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('addcVMNameSuffix')))]",
@@ -248,6 +274,9 @@
     "cliVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('cliVMNameSuffix')))]",
     "cliNSGName": "[format('INT-CLI{0}', parameters('deploymentNumber'))]",
     "cliSubnetName": "[format('clientSubnet{0}', parameters('deploymentNumber'))]",
+    "srvVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('srvVMNameSuffix')))]",
+    "srvNSGName": "[format('INT-CLI{0}', parameters('deploymentNumber'))]",
+    "srvSubnetName": "[format('srvSubnet{0}', parameters('deploymentNumber'))]",
     "publicIPAddressDNSName": "[toLower(format('{0}{1}-adfs', variables('companyNamePrefix'), parameters('deploymentNumber')))]",
     "wapVMName": "[toUpper(format('{0}{1}', variables('companyNamePrefix'), variables('wapVMNameSuffix')))]",
     "adDSCTemplate": "[format('{0}scripts/adDSCConfiguration.zip', parameters('assetLocation'))]",
@@ -281,6 +310,15 @@
           "addressprefix": "[parameters('dmzSubnetAddressRange')]",
           "networkSecurityGroup": {
             "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('dmzNSGName'))]"
+          }
+        }
+      },
+      {
+        "name": "[variables('srvSubnetName')]",
+        "properties": {
+          "addressprefix": "[parameters('srvSubnetAddressRange')]",
+          "networkSecurityGroup": {
+            "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('srvNSGName'))]"
           }
         }
       },
@@ -406,7 +444,7 @@
           "logAnalytics": [
             {
               "name": "[variables('logAnalyticsWorkspaceName')]",
-              "workspaceResourceId": "[reference(resourceId('Microsoft.Resources/deployments', 'microsoftSentinel'), '2020-10-01').outputs.workspaceResourceId.value]"
+              "workspaceResourceId": "[reference(resourceId('Microsoft.Resources/deployments', 'microsoftSentinel'), '2022-09-01').outputs.workspaceResourceId.value]"
             }
           ]
         }
@@ -448,8 +486,26 @@
       ]
     },
     {
+      "copy": {
+        "name": "srvAssociation",
+        "count": "[length(range(0, parameters('srvToDeploy')))]"
+      },
+      "type": "Microsoft.Insights/dataCollectionRuleAssociations",
+      "apiVersion": "2021-04-01",
+      "scope": "[format('Microsoft.Compute/virtualMachines/{0}', format('{0}{1}', variables('srvVMName'), range(0, parameters('srvToDeploy'))[range(0, parameters('srvToDeploy'))[copyIndex()]]))]",
+      "name": "[format('{0}-dcra', 'srvVMs')]",
+      "properties": {
+        "dataCollectionRuleId": "[resourceId('Microsoft.Insights/dataCollectionRules', 'DCR')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/dataCollectionRules', 'DCR')]",
+        "srvVMs",
+        "[resourceId('Microsoft.Resources/deployments', 'microsoftSentinel')]"
+      ]
+    },
+    {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "keyVault",
       "properties": {
         "expressionEvaluationOptions": {
@@ -473,8 +529,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "499054808027682741"
+              "version": "0.17.1.54307",
+              "templateHash": "18021861706227223112"
             }
           },
           "parameters": {
@@ -529,7 +585,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "automationaccount",
       "properties": {
         "expressionEvaluationOptions": {
@@ -550,8 +606,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "3547453333675812020"
+              "version": "0.17.1.54307",
+              "templateHash": "12013355006127901011"
             }
           },
           "parameters": {
@@ -631,7 +687,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "virtualNetwork",
       "properties": {
         "expressionEvaluationOptions": {
@@ -661,8 +717,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "17000644638101888743"
+              "version": "0.17.1.54307",
+              "templateHash": "8620073551713343696"
             }
           },
           "parameters": {
@@ -801,7 +857,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "NSGs",
       "properties": {
         "expressionEvaluationOptions": {
@@ -828,8 +884,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "2847351122268184896"
+              "version": "0.17.1.54307",
+              "templateHash": "17932367996086787869"
             }
           },
           "parameters": {
@@ -1538,7 +1594,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "adVMs",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1586,8 +1642,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "1099967097157900593"
+              "version": "0.17.1.54307",
+              "templateHash": "7878976169189662014"
             }
           },
           "parameters": {
@@ -1599,7 +1655,7 @@
               }
             },
             "adminPassword": {
-              "type": "secureString",
+              "type": "securestring",
               "metadata": {
                 "description": "Admin password"
               }
@@ -1835,7 +1891,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "virtualNetworkDNSUpdate",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1865,8 +1921,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "14976683102549116891"
+              "version": "0.17.1.54307",
+              "templateHash": "1796377255492451885"
             }
           },
           "parameters": {
@@ -1923,7 +1979,7 @@
     },
     {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "adfsVMs",
       "properties": {
         "expressionEvaluationOptions": {
@@ -1983,8 +2039,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "11261096832278296282"
+              "version": "0.17.1.54307",
+              "templateHash": "17233588763258331765"
             }
           },
           "parameters": {
@@ -2008,7 +2064,7 @@
               "defaultValue": "contoso.com"
             },
             "adminPassword": {
-              "type": "secureString",
+              "type": "securestring",
               "metadata": {
                 "description": "Admin password"
               }
@@ -2331,7 +2387,7 @@
         "count": "[length(range(0, parameters('clientsToDeploy')))]"
       },
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
       "name": "[format('{0}{1}', variables('cliVMName'), range(0, parameters('clientsToDeploy'))[copyIndex()])]",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2379,13 +2435,13 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "17587550025277254633"
+              "version": "0.17.1.54307",
+              "templateHash": "11543577824090274241"
             }
           },
           "parameters": {
             "adminPassword": {
-              "type": "secureString",
+              "type": "securestring",
               "metadata": {
                 "description": "Admin password"
               }
@@ -2615,8 +2671,300 @@
       ]
     },
     {
+      "copy": {
+        "name": "srvVMs",
+        "count": "[length(range(0, parameters('srvToDeploy')))]"
+      },
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}{1}', variables('srvVMName'), range(0, parameters('srvToDeploy'))[copyIndex()])]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "srvVMName": {
+            "value": "[variables('srvVMName')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "deploymentNumber": {
+            "value": "[parameters('deploymentNumber')]"
+          },
+          "virtualNetworkName": {
+            "value": "[variables('virtualNetworkName')]"
+          },
+          "srvSubnetName": {
+            "value": "[variables('srvSubnetName')]"
+          },
+          "adDomainName": {
+            "value": "[parameters('adDomainName')]"
+          },
+          "srvToDeploy": {
+            "value": "[parameters('srvToDeploy')]"
+          },
+          "vmSize": {
+            "value": "[parameters('vmSize')]"
+          },
+          "assetLocation": {
+            "value": "[parameters('assetLocation')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.17.1.54307",
+              "templateHash": "8739612232274457796"
+            }
+          },
+          "parameters": {
+            "adminPassword": {
+              "type": "securestring",
+              "metadata": {
+                "description": "Admin password"
+              }
+            },
+            "adminUsername": {
+              "type": "string",
+              "metadata": {
+                "description": "Admin username"
+              }
+            },
+            "srvVMName": {
+              "type": "string",
+              "defaultValue": "srv-Win"
+            },
+            "deploymentNumber": {
+              "type": "string",
+              "defaultValue": "1",
+              "metadata": {
+                "description": "When deploying the stack N times, define the instance - this will be appended to some resource names to avoid collisions."
+              }
+            },
+            "virtualNetworkName": {
+              "type": "string",
+              "defaultValue": "vnet"
+            },
+            "srvSubnetName": {
+              "type": "string",
+              "defaultValue": "[format('srvSubnet{0}', parameters('deploymentNumber'))]"
+            },
+            "adDomainName": {
+              "type": "string",
+              "defaultValue": "contoso.com"
+            },
+            "srvToDeploy": {
+              "type": "int"
+            },
+            "vmSize": {
+              "type": "string",
+              "defaultValue": "Standard_B2ms",
+              "metadata": {
+                "description": "Select a VM SKU"
+              }
+            },
+            "assetLocation": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            }
+          },
+          "variables": {
+            "shortDomainName": "[split(parameters('adDomainName'), '.')[0]]",
+            "pubIpAddressName": "[toLower(format('srvPubIp{0}', parameters('deploymentNumber')))]",
+            "nicName": "[format('srvnic-{0}-', parameters('deploymentNumber'))]",
+            "domainJoinOptions": 3,
+            "ConfigRDPUsers": "ConfigRDPUsers.ps1",
+            "ConfigRDPUsersUri": "[format('{0}scripts/ConfigRDPUsers.ps1', parameters('assetLocation'))]",
+            "imageOffer": "WindowsServer",
+            "imagePublisher": "MicrosoftWindowsServer",
+            "imageSKU": "2022-datacenter"
+          },
+          "resources": [
+            {
+              "copy": {
+                "name": "pubIpAddressName_1",
+                "count": "[length(range(0, parameters('srvToDeploy')))]"
+              },
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}{1}', variables('pubIpAddressName'), range(0, parameters('srvToDeploy'))[copyIndex()])]",
+              "location": "[parameters('location')]",
+              "tags": {
+                "displayName": "srvPubIP",
+                "isClient": "true"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                  "domainNameLabel": "[toLower(format('srvwin{0}-{1}', range(0, parameters('srvToDeploy'))[copyIndex()], uniqueString(resourceGroup().id)))]"
+                }
+              }
+            },
+            {
+              "copy": {
+                "name": "nicName_1",
+                "count": "[length(range(0, parameters('srvToDeploy')))]"
+              },
+              "type": "Microsoft.Network/networkInterfaces",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}{1}', variables('nicName'), range(0, parameters('srvToDeploy'))[copyIndex()])]",
+              "location": "[parameters('location')]",
+              "tags": {
+                "displayName": "srvNIC",
+                "isClient": "true"
+              },
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "[format('srv-ipconfig1{0}{1}', parameters('deploymentNumber'), range(0, parameters('srvToDeploy'))[copyIndex()])]",
+                    "properties": {
+                      "privateIPAllocationMethod": "Dynamic",
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}{1}', variables('pubIpAddressName'), range(0, parameters('srvToDeploy'))[range(0, parameters('srvToDeploy'))[copyIndex()]]))]"
+                      },
+                      "subnet": {
+                        "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets/', parameters('virtualNetworkName'), parameters('srvSubnetName'))]"
+                      }
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "pubIpAddressName_1"
+              ]
+            },
+            {
+              "copy": {
+                "name": "srv_Win_srvToDeploy_1_deploymentNumber",
+                "count": "[length(range(0, parameters('srvToDeploy')))]"
+              },
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2022-08-01",
+              "name": "[format('{0}{1}', parameters('srvVMName'), range(0, parameters('srvToDeploy'))[copyIndex()])]",
+              "location": "[parameters('location')]",
+              "tags": {
+                "displayName": "srvVM",
+                "isClient": "true"
+              },
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                  "computerName": "[format('{0}{1}', parameters('srvVMName'), range(0, parameters('srvToDeploy'))[copyIndex()])]",
+                  "adminUsername": "[parameters('adminUsername')]",
+                  "adminPassword": "[parameters('adminPassword')]",
+                  "windowsConfiguration": {
+                    "provisionVMAgent": true
+                  }
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "[variables('imagePublisher')]",
+                    "offer": "[variables('imageOffer')]",
+                    "sku": "[variables('imageSKU')]",
+                    "version": "latest"
+                  }
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}{1}', variables('nicName'), range(0, parameters('srvToDeploy'))[copyIndex()]))]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "nicName_1"
+              ]
+            },
+            {
+              "copy": {
+                "name": "srv_Win_srvToDeploy_1_deploymentNumber_joindomain",
+                "count": "[length(range(0, parameters('srvToDeploy')))]"
+              },
+              "type": "Microsoft.Compute/virtualMachines/extensions",
+              "apiVersion": "2022-08-01",
+              "name": "[format('{0}{1}/joindomain', parameters('srvVMName'), range(0, parameters('srvToDeploy'))[copyIndex()])]",
+              "location": "[parameters('location')]",
+              "tags": {
+                "displayName": "srvVMJoin",
+                "isClient": "true"
+              },
+              "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "JsonADDomainExtension",
+                "typeHandlerVersion": "1.3",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                  "Name": "[parameters('adDomainName')]",
+                  "OUPath": "",
+                  "User": "[format('{0}\\{1}', variables('shortDomainName'), parameters('adminUsername'))]",
+                  "Restart": "true",
+                  "Options": "[variables('domainJoinOptions')]"
+                },
+                "protectedSettings": {
+                  "Password": "[parameters('adminPassword')]"
+                }
+              },
+              "dependsOn": [
+                "srv_Win_srvToDeploy_1_deploymentNumber"
+              ]
+            },
+            {
+              "copy": {
+                "name": "srv_Win_srvToDeploy_1_deploymentNumber_ConfigRDPUsers",
+                "count": "[length(range(0, parameters('srvToDeploy')))]"
+              },
+              "type": "Microsoft.Compute/virtualMachines/extensions",
+              "apiVersion": "2022-08-01",
+              "name": "[format('{0}{1}/ConfigRDPUsers', parameters('srvVMName'), range(0, parameters('srvToDeploy'))[copyIndex()])]",
+              "location": "[parameters('location')]",
+              "tags": {
+                "displayName": "ConfigRDPUsers",
+                "isClient": "true"
+              },
+              "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.9",
+                "autoUpgradeMinorVersion": true,
+                "forceUpdateTag": "1.0.1",
+                "settings": {
+                  "fileUris": [
+                    "[variables('ConfigRDPUsersUri')]"
+                  ],
+                  "commandToExecute": "[format('powershell -ExecutionPolicy Unrestricted -File {0}', variables('ConfigRDPUsers'))]"
+                }
+              },
+              "dependsOn": [
+                "srv_Win_srvToDeploy_1_deploymentNumber"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'virtualNetworkDNSUpdate')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
       "name": "microsoftSentinel",
       "properties": {
         "expressionEvaluationOptions": {
@@ -2646,8 +2994,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "17055936360184914607"
+              "version": "0.17.1.54307",
+              "templateHash": "13010302634891032534"
             }
           },
           "parameters": {
