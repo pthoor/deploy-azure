@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.17.1.54307",
-      "templateHash": "6075477385414795316"
+      "templateHash": "13582564694530401450"
     }
   },
   "parameters": {
@@ -1643,7 +1643,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.17.1.54307",
-              "templateHash": "7333218836817823712"
+              "templateHash": "3855162610604934804"
             }
           },
           "parameters": {
@@ -1856,29 +1856,6 @@
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('adVMName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.Compute/virtualMachines/extensions",
-              "apiVersion": "2022-08-01",
-              "name": "[format('{0}/DeployUsersComputers', parameters('adVMName'))]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "publisher": "Microsoft.Compute",
-                "type": "CustomScriptExtension",
-                "typeHandlerVersion": "1.10",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                  "fileUris": [
-                    "[uri(parameters('DeployADTemplateUri'), 'scripts/PopulateAD.ps1')]"
-                  ],
-                  "commandToExecute": "[format('powershell.exe -ExecutionPolicy Bypass -File PopulateAD.ps1; Invoke-LoadADObjects -DomainName {0} -LimitUsers 100', parameters('adDomainName'))]"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions', split(format('{0}/DeployAD', parameters('adVMName')), '/')[0], split(format('{0}/DeployAD', parameters('adVMName')), '/')[1])]",
-                "[resourceId('Microsoft.Compute/virtualMachines', parameters('adVMName'))]",
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('adVMName'), 'AzurePolicyforWindows')]"
               ]
             }
           ]
@@ -2995,7 +2972,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.17.1.54307",
-              "templateHash": "13010302634891032534"
+              "templateHash": "5171660739524515494"
             }
           },
           "parameters": {
@@ -3042,7 +3019,8 @@
               "plan": {
                 "name": "[format('SecurityInsights({0})', parameters('logAnalyticsWorkspaceName'))]",
                 "product": "OMSGallery/SecurityInsights",
-                "publisher": "Microsoft"
+                "publisher": "Microsoft",
+                "promotionCode": ""
               },
               "dependsOn": [
                 "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]"

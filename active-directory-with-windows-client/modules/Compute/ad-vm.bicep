@@ -153,24 +153,24 @@ resource guestConfigExtension 'Microsoft.Compute/virtualMachines/extensions@2022
   }
 }
 
-resource adVMName_DeployUsersComputers 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
-  name: '${adVMName}/DeployUsersComputers'
-  location: location
-  properties: {
-    publisher: 'Microsoft.Compute'
-    type: 'CustomScriptExtension'
-    typeHandlerVersion: '1.10'
-    autoUpgradeMinorVersion: true
-    settings: {
-      fileUris: [
-        uri(DeployADTemplateUri, 'scripts/PopulateAD.ps1')
-      ]
-      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File PopulateAD.ps1; Invoke-LoadADObjects -DomainName ${adDomainName} -LimitUsers 100'
-    }
-  }
-  dependsOn: [
-    adVMName_resource
-    adVMName_DeployAD
-    guestConfigExtension
-  ]
-}
+//resource adVMName_DeployUsersComputers 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
+//  name: '${adVMName}/DeployUsersComputers'
+//  location: location
+//  properties: {
+//    publisher: 'Microsoft.Compute'
+//    type: 'CustomScriptExtension'
+//    typeHandlerVersion: '1.10'
+//    autoUpgradeMinorVersion: true
+//    settings: {
+//      fileUris: [
+//        uri(DeployADTemplateUri, 'scripts/PopulateAD.ps1')
+//      ]
+//      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File PopulateAD.ps1; Invoke-LoadADObjects -DomainName ${adDomainName} -LimitUsers 100'
+//    }
+//  }
+//  dependsOn: [
+//    adVMName_resource
+//    adVMName_DeployAD
+//    guestConfigExtension
+//  ]
+//}
