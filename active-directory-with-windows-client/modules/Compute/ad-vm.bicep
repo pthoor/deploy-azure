@@ -159,7 +159,7 @@ resource adVMName_DeployUsersComputers 'Microsoft.Compute/virtualMachines/extens
   properties: {
     publisher: 'Microsoft.Compute'
     type: 'CustomScriptExtension'
-    typeHandlerVersion: '1.9'
+    typeHandlerVersion: '1.10'
     autoUpgradeMinorVersion: true
     settings: {
       fileUris: [

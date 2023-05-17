@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.17.1.54307",
-      "templateHash": "4277958421979744991"
+      "templateHash": "6075477385414795316"
     }
   },
   "parameters": {
@@ -1643,7 +1643,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.17.1.54307",
-              "templateHash": "7531966804403920928"
+              "templateHash": "7333218836817823712"
             }
           },
           "parameters": {
@@ -1866,7 +1866,7 @@
               "properties": {
                 "publisher": "Microsoft.Compute",
                 "type": "CustomScriptExtension",
-                "typeHandlerVersion": "1.9",
+                "typeHandlerVersion": "1.10",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                   "fileUris": [
