@@ -120,13 +120,13 @@ resource adVMName_resource 'Microsoft.Compute/virtualMachines@2022-08-01' = {
   }
 }
 
-resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
+resource adVMName_DeployAD 'Microsoft.Compute/virtualMachines/extensions@2015-06-15' = {
   name: '${adVMName}/DeployAD'
   location: location
   properties: {
-    publisher: 'Microsoft.Azure.Extensions'
-    type: 'CustomScript'
-    typeHandlerVersion: '2.0'
+    publisher: 'Microsoft.Compute'
+    type: 'CustomScriptExtension'
+    typeHandlerVersion: '1.9'
     autoUpgradeMinorVersion: true
     settings: {
       fileUris: [
@@ -159,7 +159,7 @@ resource adVMName_DeployUsersComputers 'Microsoft.Compute/virtualMachines/extens
   properties: {
     publisher: 'Microsoft.Compute'
     type: 'CustomScriptExtension'
-    typeHandlerVersion: '1.10'
+    typeHandlerVersion: '1.9'
     autoUpgradeMinorVersion: true
     settings: {
       fileUris: [

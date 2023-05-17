@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.17.1.54307",
-      "templateHash": "8807388976982917996"
+      "templateHash": "4277958421979744991"
     }
   },
   "parameters": {
@@ -1643,7 +1643,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.17.1.54307",
-              "templateHash": "15706186223284743753"
+              "templateHash": "7531966804403920928"
             }
           },
           "parameters": {
@@ -1823,13 +1823,13 @@
             },
             {
               "type": "Microsoft.Compute/virtualMachines/extensions",
-              "apiVersion": "2022-08-01",
+              "apiVersion": "2015-06-15",
               "name": "[format('{0}/DeployAD', parameters('adVMName'))]",
               "location": "[parameters('location')]",
               "properties": {
-                "publisher": "Microsoft.Azure.Extensions",
-                "type": "CustomScript",
-                "typeHandlerVersion": "2.0",
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.9",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                   "fileUris": [
@@ -1866,7 +1866,7 @@
               "properties": {
                 "publisher": "Microsoft.Compute",
                 "type": "CustomScriptExtension",
-                "typeHandlerVersion": "1.10",
+                "typeHandlerVersion": "1.9",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                   "fileUris": [
