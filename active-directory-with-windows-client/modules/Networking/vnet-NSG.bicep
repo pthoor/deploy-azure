@@ -1,22 +1,19 @@
-@description('When deploying the stack N times, define the instance - this will be appended to some resource names to avoid collisions.')
-param deploymentNumber string = '1'
-
 @description('Name of the virtual network for this deployment')
-param virtualNetworkName string = 'vnet'
+//param virtualNetworkName string
 param subnets array
 
 param location string = resourceGroup().location
 
-var adNSGName_var = 'INT-AD${deploymentNumber}'
-var dmzNSGName_var = 'DMZ-WAP${deploymentNumber}'
-var bastionNSGName_var = 'bastionNSG'
-var cliNSGName_var = 'INT-CLI${deploymentNumber}'
+var var_adNSGName = 'nsg-int-ad'
+var var_dmzNSGName = 'nsg-dmz-wap'
+var var_bastionNSGName = 'nsg-bastion'
+var var_cliNSGName = 'nsg-int-cli'
 var adsubnetrange = subnets[0].properties.addressPrefix
 var dmzSubnetRange = subnets[1].properties.addressPrefix
 var cliSubnetRange = subnets[2].properties.addressPrefix
 
 resource adNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
-  name: adNSGName_var
+  name: var_adNSGName
   location: location
   tags: {
     displayName: 'adNSG'
@@ -434,7 +431,7 @@ resource adNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
 }
 
 resource DMZNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
-  name: dmzNSGName_var
+  name: var_dmzNSGName
   location: location
   tags: {
     displayName: 'DMZNSG'
@@ -474,7 +471,7 @@ resource DMZNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
 }
 
 resource bastionNSGName 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
-  name: bastionNSGName_var
+  name: var_bastionNSGName
   location: location
   properties: {
     securityRules: [
@@ -625,7 +622,7 @@ resource bastionNSGName 'Microsoft.Network/networkSecurityGroups@2020-07-01' = {
 }
 
 resource cliNSGName 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
-  name: cliNSGName_var
+  name: var_cliNSGName
   location: location
   tags: {
     displayName: 'CLINSG'

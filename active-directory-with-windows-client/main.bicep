@@ -7,6 +7,12 @@ param assetLocation string = 'https://raw.githubusercontent.com/pthoor/deploy-az
 param sku string = 'standard'
 param skuCode string = 'A'
 
+@description('The object ID of the user or service principal that will be granted access to the Key Vault.')
+param objectId string
+
+@description('The overall environment name for the deployment.')
+param environmentName string = 'contosobck'
+
 // Log Analytics workspace parameters
 //@description('Globally unique name for the Log Analytics workspace.')
 //param logAnalyticsWorkspaceName string
@@ -21,10 +27,13 @@ param logAnalyticsWorkspaceRetention int = 30
 @maxValue(10)
 param logAnalyticsWorkspaceDailyQuota int = 5
 
+var kvName = 'kv${uniqueString(resourceGroup().id)}'
+
 // Deploy Key Vault
 module keyvault 'modules/keyvault.bicep' = {
-  name: 'keyVault'
+  name: kvName
   params: {
+    objectId: objectId
     location: location
     sku: sku
     skuCode: skuCode
@@ -51,10 +60,11 @@ param deploymentNumber string = '1'
 
 @description('Password for the local administrator account. Cannot be "P@ssw0rd" and possibly other such common passwords. Must be 8 characters long and three of the following complexity requirements: uppercase, lowercase, number, special character')
 @secure()
-param adminPassword string
+param adminPassword string = 'rP_LZmhEzhQ3KF3'
+//param adminPassword string = newGuid()
 
 @description('Two-part internal AD name - short/NB name will be first part (\'contoso\').')
-param adDomainName string = 'contoso.com'
+param adDomainName string = 'contoso.local'
 
 @description('JSON object array of users that will be loaded into AD once the domain is established.')
 param usersArray array = [
@@ -82,7 +92,8 @@ param usersArray array = [
 
 @description('Enter the password that will be applied to each user account to be created in AD.')
 @secure()
-param defaultUserPassword string
+param defaultUserPassword string = 'rP_LZmhEzhQ3KF3'
+//param defaultUserPassword string = newGuid() rP_LZmhEzhQ3KF3
 
 @description('An ADFS/WAP server combo will be setup independently this number of times. NOTE: it\'s unlikely to ever need more than one - additional farm counts are for edge case testing.')
 @allowed([
@@ -121,8 +132,8 @@ param adSubnetAddressRange string = '10.0.1.0/24'
 @description('The IP Addresses assigned to the domain controllers (a, b). Remember the first IP in a subnet is .4 e.g. 10.0.0.0/16 reserves 10.0.0.0-3. Specify one IP per server - must match numberofVMInstances or deployment will fail.')
 param adIP string = '10.0.1.4'
 
-@description('The IP Addresses assigned to the domain controllers (a, b). Remember the first IP in a subnet is .4 e.g. 10.0.0.0/16 reserves 10.0.0.0-3. Specify one IP per server - must match numberofVMInstances or deployment will fail.')
-param adfsIP string = '10.0.1.5'
+@description('The IP Addresses assigned to the AD FS servers (a, b). Remember the first IP in a subnet is .4 e.g. 10.0.0.0/16 reserves 10.0.0.0-3. Specify one IP per server - must match numberofVMInstances or deployment will fail.')
+param adfsIP string = '10.0.1.8'
 
 @description('The address range of the desired subnet for the DMZ.')
 param dmzSubnetAddressRange string = '10.0.2.0/24'
@@ -135,6 +146,15 @@ param bastionSubnetAddressRange string = '10.0.4.0/26'
 
 @description('The address range of the desired subnet for servers.')
 param srvSubnetAddressRange string = '10.0.5.0/26'
+
+@description('AdSrvToDeploy, possible values: 1-4.')
+@allowed([
+  1
+  2
+  3
+  4
+])
+param AdSrvToDeploy int = 1
 
 @description('ClientsToDeploy, possible values: 1-9.')
 @allowed([
@@ -165,33 +185,36 @@ param clientsToDeploy int = 1
 param srvToDeploy int = 1
 
 param location string = resourceGroup().location
+param region string = 'sdc'
+
+var vaultName = 'rsVault${uniqueString(resourceGroup().id)}'
 
 var automationaccountname = 'aa${uniqueString(resourceGroup().id)}'
 var logAnalyticsWorkspaceName = 'la${uniqueString(resourceGroup().id)}'
 var adfsDeployCount = int(AdfsFarmCount)
-var networkInterfaceName = 'NIC'
+var networkInterfaceName = 'nic'
 var addcVMNameSuffix = 'dc'
 var adfsVMNameSuffix = 'fs'
-var wapVMNameSuffix = 'px'
+var wapVMNameSuffix = 'wap'
 var cliVMNameSuffix = 'cli'
 var srvVMNameSuffix = 'srv'
 var companyNamePrefix = split(adDomainName, '.')[0]
 var adfsVMName = toUpper('${companyNamePrefix}${adfsVMNameSuffix}')
 var adVMName = toUpper('${companyNamePrefix}${addcVMNameSuffix}')
-var adNSGName = 'INT-AD${deploymentNumber}'
-var virtualNetworkName = '${companyNamePrefix}${deploymentNumber}-vnet'
-var adSubnetName = 'adSubnet${deploymentNumber}'
+var adNSGName = 'nsg-int-ad'
+var virtualNetworkName = 'vnet-${environmentName}-${region}-001'
+var adSubnetName = 'snet-ad-${region}-001'
 var bastionSubnetName = 'AzureBastionSubnet'
-var bastionNSGName = 'bastionNSG'
-var dmzNSGName = 'DMZ-WAP${deploymentNumber}'
-var dmzSubnetName = 'dmzSubnet${deploymentNumber}'
+var bastionNSGName = 'nsg-bastion'
+var dmzNSGName = 'nsg-dmz-wap'
+var dmzSubnetName = 'snet-dmz-${region}-001'
 var cliVMName = toUpper('${companyNamePrefix}${cliVMNameSuffix}')
-var cliNSGName = 'INT-CLI${deploymentNumber}'
-var cliSubnetName = 'clientSubnet${deploymentNumber}'
+var cliNSGName = 'nsg-int-cli'
+var cliSubnetName = 'snet-client-${region}-001'
 var srvVMName = toUpper('${companyNamePrefix}${srvVMNameSuffix}')
-var srvNSGName = 'INT-CLI${deploymentNumber}'
-var srvSubnetName = 'srvSubnet${deploymentNumber}'
-var publicIPAddressDNSName = toLower('${companyNamePrefix}${deploymentNumber}-adfs')
+var srvNSGName = 'nsg-int-cli'
+var srvSubnetName = 'snet-srv-${region}-001'
+var publicIPAddressDNSName = toLower('${companyNamePrefix}${deploymentNumber}-adfs-${uniqueString(resourceGroup().id)}')
 var wapVMName = toUpper('${companyNamePrefix}${wapVMNameSuffix}')
 var adDSCTemplate = '${assetLocation}scripts/adDSCConfiguration.zip'
 var DeployADFSFarmTemplate = 'InstallADFS.ps1'
@@ -251,6 +274,8 @@ var adfsDSCConfigurationFunction = 'adfsDSCConfiguration.ps1\\Main'
 var wapDSCConfigurationFunction = 'wapDSCConfiguration.ps1\\Main'
 var WAPPubIpDnsFQDN = '${publicIPAddressDNSName}{0}.${toLower(replace(location, ' ', ''))}.cloudapp.azure.com'
 
+var backupFabric = 'Azure'
+
 module automationaccount 'modules/automationaccount.bicep' = {
   name: 'automationaccount'
   params: {
@@ -277,21 +302,19 @@ module NSGs 'modules/Networking/vnet-NSG.bicep' = {
   name: 'NSGs'
   params: {
     location: location
-    virtualNetworkName: virtualNetworkName
     subnets: subnets
-    deploymentNumber: deploymentNumber
   }
 }
 
-module adVMs 'modules/Compute/ad-vm.bicep' = {
-  name: 'adVMs'
+module adVMs 'modules/Compute/ad-vm.bicep' = [for i in range(0, AdSrvToDeploy): {
+  name: '${adVMName}${i}'
   params: {
     adIP: adIP
     adminPassword: adminPassword
     adminUsername: adminUsername
     adDomainName: adDomainName
     adSubnetName: adSubnetName
-    adVMName: adVMName
+    adVMName: '${adVMName}${i}'
     location: location
     NetworkInterfaceName: networkInterfaceName
     virtualNetworkName: virtualNetworkName
@@ -299,10 +322,11 @@ module adVMs 'modules/Compute/ad-vm.bicep' = {
     deploymentNumber: deploymentNumber
   }
   dependsOn: [
+    NSGs
     virtualNetwork
     automationaccount
   ]
-}
+}]
 
 module virtualNetworkDNSUpdate 'modules/Networking/vnet-dns.bicep' = {
   name: 'virtualNetworkDNSUpdate'
@@ -327,7 +351,7 @@ module adfsVMs 'modules/Compute/adfs-vm.bicep' = {
     adDomainName: adDomainName
     adminPassword: adminPassword
     adminUsername: adminUsername
-        dmzSubnetName: dmzSubnetName
+    dmzSubnetName: dmzSubnetName
     location: location
     NetworkInterfaceName: networkInterfaceName
     publicIPAddressDNSName: publicIPAddressDNSName
@@ -497,21 +521,21 @@ resource dcr 'Microsoft.Insights/dataCollectionRules@2021-09-01-preview' = {
 }
 
 // Create a data collection rule association for the domain controller
-resource domainControllerVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing = {
+resource domainControllerVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing =[for i in range(0, AdSrvToDeploy): {
   name: adVMName
-}
+}]
 
-resource domainControllerAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = {
+resource domainControllerAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-04-01' = [for i in range(0, AdSrvToDeploy): {
   name: '${'adVMs'}-dcra'
   dependsOn: [
     workspace
     adVMs
   ]
-  scope: domainControllerVm
+  scope: domainControllerVm[i]
   properties: {
     dataCollectionRuleId: dcr.id
   }
-}
+}]
 
 // Create a data collection rule association for the workstation
 resource workstationVm 'Microsoft.Compute/virtualMachines@2021-11-01' existing = [for i in range(0, clientsToDeploy): {
@@ -548,3 +572,132 @@ resource srvAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2021-
     dataCollectionRuleId: dcr.id
   }
 }]
+
+module recoveryServicesVault 'modules/Backup/recoveryservicevault.bicep' =  {
+  name: 'recoveryServicesVault'
+  params: {
+    vaultName: vaultName
+    location: location
+    dailyRetentionDurationCount: 30
+    daysOfTheWeek: [
+      'Monday'
+      'Tuesday'
+      'Wednesday'
+      'Thursday'
+      'Friday'
+      'Saturday'
+      'Sunday'
+    ]
+    instantRpRetentionRangeInDays: 5
+    monthlyRetentionDurationCount: 12
+    monthsOfYear: [
+      'January'
+      'February'
+      'March'
+      'April'
+      'May'
+      'June'
+      'July'
+      'August'
+      'September'
+      'October'
+      'November'
+      'December'
+    ]
+    scheduleRunTimes: [
+      '2019-06-01T08:00:00+00:00'
+    ]
+    timeZone: 'UTC'
+    weeklyRetentionDurationCount: 4
+    yearlyRetentionDurationCount: 1
+    policyName: 'DefaultPolicy'
+  }
+}
+
+//module protecteditems 'modules/Backup/protecteditems.bicep' = [for i in range(0, srvToDeploy): {
+//  name: '${'srvVMs'}-protecteditems'
+//  params: {
+//    vmName: '${srvVMName}${i}'
+//    vaultName: 'rsVault${uniqueString(resourceGroup().id)}'
+//    backupPolicyId: recoveryServicesVault.outputs.policyId
+//    virtualMachine: {
+//      id: resourceId('Microsoft.Compute/virtualMachines', '${srvVMName}${i}')
+//    }
+//  }
+//  dependsOn: [
+//    recoveryServicesVault
+//    serverVm[i]
+//  ]
+//}]
+
+var protectionContainer = 'iaasvmcontainer;iaasvmcontainerv2;${resourceGroup().name};'
+var protectedItem = 'vm;iaasvmcontainerv2;${resourceGroup().name};'
+
+//var containerType = ''
+//var backupManagementType = 'AzureWorkload'
+
+//var vmResourceGroup = resourceGroup().name
+
+
+//resource newprotectionContainer 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers@2021-03-01' = [for i in range(0, srvToDeploy): {
+//  name: '${recoveryServicesVault.name}/${backupFabric}/${containerType};compute;${vmResourceGroup};${srvVMName}${i}'
+//  properties: {
+//    containerType: containerType
+//    backupManagementType: backupManagementType
+//    workloadType: 'VM'
+//    friendlyName: '${srvVMName}${i}'
+//    sourceResourceId: resourceId(vmResourceGroup, 'Microsoft.Compute/virtualMachines', '${srvVMName}${i}')
+//  }
+//  dependsOn: [
+//    recoveryServicesVault
+//    serverVm[i]
+//  ]
+//}]
+
+
+resource srv_protectitems 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems@2024-01-01' = [for i in range(0, srvToDeploy): {
+  name: '${vaultName}/${backupFabric}/${protectionContainer}${srvVMName}${i}/${protectedItem}${srvVMName}${i}'
+  location: location
+  properties: {
+    protectedItemType: 'Microsoft.Compute/virtualMachines'
+    sourceResourceId: resourceId('Microsoft.Compute/virtualMachines', '${srvVMName}${i}')
+    policyId: recoveryServicesVault.outputs.policyId
+  }
+  dependsOn: [
+    recoveryServicesVault
+    adfsVMs
+    adVMs
+    srvVMs
+    serverVm
+  ]
+}]
+
+resource dc_protectitems 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems@2024-01-01' = [for i in range(0, AdSrvToDeploy): {
+  name: '${vaultName}/${backupFabric}/${protectionContainer}${adVMName}${i}/${protectedItem}${adVMName}${i}'
+  location: location
+  properties: {
+    protectedItemType: 'Microsoft.Compute/virtualMachines'
+    sourceResourceId: resourceId('Microsoft.Compute/virtualMachines', '${adVMName}${i}')
+    policyId: recoveryServicesVault.outputs.policyId
+  }
+  dependsOn: [
+    recoveryServicesVault
+    adfsVMs
+    adVMs
+    srvVMs
+    serverVm
+  ]
+}]
+
+resource kvRef 'Microsoft.KeyVault/vaults@2023-07-01' existing  = {
+  name: keyvault.name
+
+}
+
+resource secret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: kvRef
+  name: adminUsername
+  properties: {
+    value: adminPassword
+  }
+}

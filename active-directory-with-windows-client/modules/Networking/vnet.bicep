@@ -37,15 +37,13 @@ param bastionHostName string = 'bastion-jumpbox'
 var subnetName = 'AzureBastionSubnet'
 
 resource bastionSubnet 'Microsoft.Network/virtualNetworks/subnets@2022-01-01' = {
-  name: '${virtualNetworkName}/${subnetName}'
+  parent: virtualNetworkName_resource
+  name: subnetName
   properties: {
     addressPrefix: bastionSubnetAddressRange
     privateEndpointNetworkPolicies: 'Disabled'
     privateLinkServiceNetworkPolicies: 'Disabled'
   }
-  dependsOn: [
-    virtualNetworkName_resource
-  ]
 }
 
 resource publicIpAddressForBastion 'Microsoft.Network/publicIPAddresses@2022-01-01' = {

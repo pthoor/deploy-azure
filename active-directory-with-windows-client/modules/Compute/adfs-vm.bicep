@@ -2,7 +2,7 @@ param adSubnetName string = 'adSubnet'
 param adfsVMName string = 'AZADFS'
 
 @description('The IP Addresses assigned to the domain controllers (a, b). Remember the first IP in a subnet is .4 e.g. 10.0.0.0/16 reserves 10.0.0.0-3. Specify one IP per server - must match numberofVMInstances or deployment will fail.s')
-param adfsIP string = '10.0.1.5'
+param adfsIP string = '10.0.1.8'
 param adDomainName string = 'contoso.com'
 
 @description('Admin password')
@@ -61,7 +61,7 @@ resource adfsPubIpName_1 'Microsoft.Network/publicIPAddresses@2022-07-01' = [for
   properties: {
     publicIPAllocationMethod: 'Dynamic'
     dnsSettings: {
-      domainNameLabel: toLower('${adfsVMName}${deploymentNumber}-${i}')
+      domainNameLabel: toLower('${adfsVMName}${deploymentNumber}${uniqueString(resourceGroup().id)}')
     }
   }
 }]
@@ -92,7 +92,7 @@ resource adfsNICName_1 'Microsoft.Network/networkInterfaces@2022-07-01' = [for i
         name: 'adfsipconfig${deploymentNumber}${i}'
         properties: {
           privateIPAllocationMethod: 'Static'
-          privateIPAddress: '${adfsNetworkString}${i}${adfsStartIpNodeAddress}'
+          privateIPAddress: '${adfsNetworkString}${adfsStartIpNodeAddress}'
           publicIPAddress: {
             id: resourceId('Microsoft.Network/publicIPAddresses', '${adfsPubIpName}${i}')
           }

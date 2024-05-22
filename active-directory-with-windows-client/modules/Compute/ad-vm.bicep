@@ -42,7 +42,7 @@ resource adPIPName 'Microsoft.Network/publicIPAddresses@2022-07-01' = {
   properties: {
     publicIPAllocationMethod: 'Dynamic'
     dnsSettings: {
-      domainNameLabel: toLower('${adVMName}${deploymentNumber}')
+      domainNameLabel: toLower('${adVMName}${deploymentNumber}${uniqueString(resourceGroup().id)}')
     }
   }
 }
